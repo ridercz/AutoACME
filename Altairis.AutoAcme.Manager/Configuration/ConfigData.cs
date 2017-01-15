@@ -25,6 +25,8 @@ namespace Altairis.AutoAcme.Manager.Configuration {
 
         public int PurgeDaysAfterExpiration { get; set; } = 30;
 
+        public bool AutoSaveConfigBackup { get; set; } = true;
+
         public IList<CertInfo> Certificates { get; set; } = new List<CertInfo>();
 
         // Methods
