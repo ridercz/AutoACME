@@ -27,7 +27,7 @@ namespace Altairis.AutoAcme.Manager {
 
         [Action("Initializes configuration file with default values.")]
         public static void InitCfg(
-            [Optional(DEFAULT_CONFIG_NAME, "cf", Description = "Configuration file name")] string fileName,
+            [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string fileName,
             [Optional(false, "s", Description = "Use Let's Encrypt staging server")] bool useStagingServer,
             [Optional(false, "y", Description = "Overwrite existing file")] bool overwrite,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
@@ -59,7 +59,7 @@ namespace Altairis.AutoAcme.Manager {
         public static void AddHost(
             [Required(Description = "Host name")] string hostName,
             [Optional(false, "m", Description = "Wait for manual verification")] bool manual,
-            [Optional(DEFAULT_CONFIG_NAME, "cf", Description = "Configuration file name")] string fileName,
+            [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string fileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
             verboseMode = verbose;
@@ -70,7 +70,7 @@ namespace Altairis.AutoAcme.Manager {
         [Action("Deletes host and keyfile from management.")]
         public static void DelHost(
             [Required(Description = "Host name")] string hostName,
-            [Optional(DEFAULT_CONFIG_NAME, "cf", Description = "Configuration file name")] string fileName,
+            [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string fileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
             verboseMode = verbose;
@@ -80,7 +80,7 @@ namespace Altairis.AutoAcme.Manager {
 
         [Action("Purges stale (unrenewed) hosts and keyfiles from management.")]
         public static void Purge(
-            [Optional(DEFAULT_CONFIG_NAME, "cf", Description = "Configuration file name")] string fileName,
+            [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string fileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
             verboseMode = verbose;
@@ -90,7 +90,7 @@ namespace Altairis.AutoAcme.Manager {
 
         [Action("Renews certificates expiring in near future.")]
         public static void Renew(
-            [Optional(DEFAULT_CONFIG_NAME, "cf", Description = "Configuration file name")] string fileName,
+            [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string fileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
             verboseMode = verbose;
@@ -100,7 +100,7 @@ namespace Altairis.AutoAcme.Manager {
 
         [Action("Combines 'renew' and 'purge'.")]
         public static void Process(
-            [Optional(DEFAULT_CONFIG_NAME, "cf", Description = "Configuration file name")] string fileName,
+            [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string fileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
             verboseMode = verbose;
