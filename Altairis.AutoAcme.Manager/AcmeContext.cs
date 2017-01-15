@@ -10,9 +10,9 @@ using Certes.Acme;
 using Certes.Pkcs;
 
 namespace Altairis.AutoAcme.Manager {
-    class AcmeContext {
-        private readonly TextWriter log;
-        private readonly AcmeClient client;
+    class AcmeContext : IDisposable {
+        private TextWriter log;
+        private AcmeClient client;
         private AcmeAccount account;
 
         public AcmeContext(TextWriter logWriter, Uri serverAddress) {
@@ -26,6 +26,7 @@ namespace Altairis.AutoAcme.Manager {
         public async Task LoginAsync(string email) {
             if (email == null) throw new ArgumentNullException(nameof(email));
             if (string.IsNullOrWhiteSpace(email)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(email));
+            if (this.client == null) throw new ObjectDisposedException("AcmeContext");
 
             this.log.Write($"Creating registration for '{email}'...");
             this.account = await this.client.NewRegistraton(email);
@@ -41,10 +42,11 @@ namespace Altairis.AutoAcme.Manager {
             this.LoginAsync(email).GetAwaiter().GetResult();
         }
 
-        public async Task<CertificateRequestResult> GetCertificateAsync(string hostName, string pfxPassword, Action<string, string> challengeCallback, int retryCount, TimeSpan retryTime) {
+        public async Task<CertificateRequestResult> GetCertificateAsync(string hostName, string pfxPassword, Action<string, string> challengeCallback, Action<string> cleanupCallback, int retryCount, TimeSpan retryTime) {
             if (hostName == null) throw new ArgumentNullException(nameof(hostName));
             if (string.IsNullOrWhiteSpace(hostName)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(hostName));
             if (challengeCallback == null) throw new ArgumentNullException(nameof(challengeCallback));
+            if (this.client == null) throw new ObjectDisposedException("AcmeContext");
 
             // Create authorization request
             this.log.Write("Creating authorization request...");
@@ -79,6 +81,9 @@ namespace Altairis.AutoAcme.Manager {
             }
             if (ar.Data.Status != EntityStatus.Valid) throw new Exception($"Authorization not valid. Last known status: {ar.Data.Status}");
 
+            // Clean up challenge
+            cleanupCallback(ch.Token);
+
             // Get certificate
             this.log.Write("Requesting certificate...");
             var csr = new CertificationRequestBuilder();
@@ -99,8 +104,31 @@ namespace Altairis.AutoAcme.Manager {
             };
         }
 
-        public CertificateRequestResult GetCertificate(string hostName, string pfxPassword, Action<string, string> challengeCallback, int retryCount, TimeSpan retryTime) {
-            return this.GetCertificateAsync(hostName, pfxPassword, challengeCallback, retryCount, retryTime).GetAwaiter().GetResult();
+        public CertificateRequestResult GetCertificate(string hostName, string pfxPassword, Action<string, string> challengeCallback, Action<string> cleanupCallback, int retryCount, TimeSpan retryTime) {
+            return this.GetCertificateAsync(hostName, pfxPassword, challengeCallback, cleanupCallback, retryCount, retryTime).GetAwaiter().GetResult();
+        }
+
+        // IDisposable implementation
+
+        public void Dispose() {
+            // Dispose of unmanaged resources.
+            Dispose(true);
+
+            // Suppress finalization.
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing) {
+            if (disposing) {
+                if (this.client != null) {
+                    this.client.Dispose();
+                    this.client = null;
+                }
+                if (this.log != null) {
+                    this.log.Dispose();
+                    this.log = null;
+                }
+            }
         }
     }
 }
