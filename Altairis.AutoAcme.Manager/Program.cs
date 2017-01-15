@@ -30,14 +30,14 @@ namespace Altairis.AutoAcme.Manager {
         [Action("Initializes configuration file with default values.")]
         public static void InitCfg(
             [Optional(false, "d", Description = "Don't ask, use default values")] bool useDefaults,
-            [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string fileName,
+            [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string cfgFileName,
             [Optional(false, "y", Description = "Overwrite existing file")] bool overwrite,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
             verboseMode = verbose;
 
             // Check if config file already exists
-            if (!overwrite && File.Exists(fileName)) CrashExit("File already exists. Use /y to overwrite.");
+            if (!overwrite && File.Exists(cfgFileName)) CrashExit("File already exists. Use /y to overwrite.");
 
             // Create default configuration
             var defaultConfig = new Configuration.ConfigData();
@@ -93,9 +93,9 @@ namespace Altairis.AutoAcme.Manager {
             }
 
             // Save to file
-            Console.Write($"Saving to file '{fileName}'...");
+            Console.Write($"Saving to file '{cfgFileName}'...");
             try {
-                defaultConfig.Save(fileName);
+                defaultConfig.Save(cfgFileName);
             }
             catch (Exception ex) {
                 CrashExit(ex);
@@ -110,7 +110,7 @@ namespace Altairis.AutoAcme.Manager {
         public static void AddHost(
             [Required(Description = "Host name")] string hostName,
             [Optional(false, "m", Description = "Wait for manual verification")] bool manual,
-            [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string fileName,
+            [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
             verboseMode = verbose;
@@ -121,7 +121,7 @@ namespace Altairis.AutoAcme.Manager {
         [Action("Deletes host and keyfile from management.")]
         public static void DelHost(
             [Required(Description = "Host name")] string hostName,
-            [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string fileName,
+            [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
             verboseMode = verbose;
@@ -132,7 +132,7 @@ namespace Altairis.AutoAcme.Manager {
         [Action("Purges stale (unrenewed) hosts and keyfiles from management.")]
         public static void Purge(
             [Optional(false, "wi", Description = "What if - only show certs to be purged")] bool whatIf,
-            [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string fileName,
+            [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
             verboseMode = verbose;
@@ -143,7 +143,7 @@ namespace Altairis.AutoAcme.Manager {
         [Action("Renews certificates expiring in near future.")]
         public static void Renew(
             [Optional(false, "wi", Description = "What if - only show certs to be renewed")] bool whatIf,
-            [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string fileName,
+            [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
             verboseMode = verbose;
@@ -154,22 +154,22 @@ namespace Altairis.AutoAcme.Manager {
         [Action("Combines 'renew' and 'purge'.")]
         public static void Process(
             [Optional(false, "wi", Description = "What if - only show certs to be renewed")] bool whatIf,
-            [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string fileName,
+            [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
-            Renew(whatIf, fileName, verbose);
-            Purge(whatIf, fileName, verbose);
+            Renew(whatIf, cfgFileName, verbose);
+            Purge(whatIf, cfgFileName, verbose);
         }
 
         // Helper methods
 
-        private static void LoadConfig(string fileName) {
-            if (fileName == null) throw new ArgumentNullException(nameof(fileName));
-            if (string.IsNullOrWhiteSpace(fileName)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(fileName));
+        private static void LoadConfig(string cfgFileName) {
+            if (cfgFileName == null) throw new ArgumentNullException(nameof(cfgFileName));
+            if (string.IsNullOrWhiteSpace(cfgFileName)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(cfgFileName));
 
             try {
-                Console.Write($"Reading configuration from '{fileName}'...");
-                config = ConfigData.Load(fileName);
+                Console.Write($"Reading configuration from '{cfgFileName}'...");
+                config = ConfigData.Load(cfgFileName);
                 Console.WriteLine("OK");
             }
             catch (Exception ex) {
@@ -177,13 +177,13 @@ namespace Altairis.AutoAcme.Manager {
             }
         }
 
-        private static void SaveConfig(string fileName) {
-            if (fileName == null) throw new ArgumentNullException(nameof(fileName));
-            if (string.IsNullOrWhiteSpace(fileName)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(fileName));
+        private static void SaveConfig(string cfgFileName) {
+            if (cfgFileName == null) throw new ArgumentNullException(nameof(cfgFileName));
+            if (string.IsNullOrWhiteSpace(cfgFileName)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(cfgFileName));
 
             try {
-                Console.Write($"Saving configuration to '{fileName}'...");
-                config.Save(fileName);
+                Console.Write($"Saving configuration to '{cfgFileName}'...");
+                config.Save(cfgFileName);
                 Console.WriteLine("OK");
             }
             catch (Exception ex) {
