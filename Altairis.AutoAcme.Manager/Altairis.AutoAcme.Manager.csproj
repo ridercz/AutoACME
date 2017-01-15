@@ -85,6 +85,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AcmeContext.cs" />
+    <Compile Include="CertificateRequestResult.cs" />
     <Compile Include="Configuration\CertInfo.cs" />
     <Compile Include="Configuration\ConfigData.cs" />
     <Compile Include="Program.cs" />
