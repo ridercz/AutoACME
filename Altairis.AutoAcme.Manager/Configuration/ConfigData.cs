@@ -5,7 +5,7 @@ using Certes.Acme;
 using Newtonsoft.Json;
 
 namespace Altairis.AutoAcme.Manager.Configuration {
-    class Database {
+    class ConfigData {
 
         public string EmailAddress { get; set; } = "example@example.com";
 
@@ -37,12 +37,12 @@ namespace Altairis.AutoAcme.Manager.Configuration {
             File.WriteAllText(fileName, json);
         }
 
-        public static Database Load(string fileName) {
+        public static ConfigData Load(string fileName) {
             if (fileName == null) throw new ArgumentNullException(nameof(fileName));
             if (string.IsNullOrWhiteSpace(fileName)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(fileName));
 
             var json = File.ReadAllText(fileName);
-            return JsonConvert.DeserializeObject<Database>(json);
+            return JsonConvert.DeserializeObject<ConfigData>(json);
         }
 
     }

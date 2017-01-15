@@ -86,7 +86,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Configuration\CertInfo.cs" />
-    <Compile Include="Configuration\Database.cs" />
+    <Compile Include="Configuration\ConfigData.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

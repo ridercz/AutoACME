@@ -15,7 +15,7 @@ namespace Altairis.AutoAcme.Manager {
         private const string DEFAULT_CONFIG_NAME = "autoacme.json";
 
         private static bool verboseMode;
-        private static Database config;
+        private static ConfigData config;
 
         static void Main(string[] args) {
             Console.WriteLine($"Altairis AutoACME Manager version {System.Reflection.Assembly.GetExecutingAssembly().GetName().Version}");
@@ -40,7 +40,7 @@ namespace Altairis.AutoAcme.Manager {
             if (!overwrite && File.Exists(fileName)) CrashExit("File already exists. Use /y to overwrite.");
 
             // Create default configuration
-            var defaultConfig = new Configuration.Database();
+            var defaultConfig = new Configuration.ConfigData();
 
             if (!useDefaults) {
                 // Ask some questions
@@ -169,7 +169,7 @@ namespace Altairis.AutoAcme.Manager {
 
             try {
                 Console.Write($"Reading configuration from '{fileName}'...");
-                config = Database.Load(fileName);
+                config = ConfigData.Load(fileName);
                 Console.WriteLine("OK");
             }
             catch (Exception ex) {
