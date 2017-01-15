@@ -172,8 +172,39 @@ namespace Altairis.AutoAcme.Manager {
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
             verboseMode = verbose;
+            LoadConfig(cfgFileName);
+            hostName = hostName.Trim().ToLower();
 
-            throw new NotImplementedException();
+            // Check if there is host with this name
+            Console.Write($"Finding host {hostName}...");
+            var host = config.Certificates.SingleOrDefault(x => x.CommonName.Equals(hostName));
+            if (host == null) CrashExit($"Host '{hostName}' was not found.");
+            Console.WriteLine("OK");
+
+            // Delete PFX file
+            try {
+                var pfxFileName = Path.Combine(config.PfxFolder, hostName + ".pfx");
+                Console.Write($"Deleting PFX file {pfxFileName}...");
+                File.Delete(pfxFileName);
+                Console.WriteLine("OK");
+            }
+            catch (Exception ex) {
+                Console.WriteLine("Warning!");
+                Console.WriteLine(ex.Message);
+
+                if (verboseMode) {
+                    Console.WriteLine();
+                    Console.WriteLine(ex);
+                }
+            }
+
+            // Delete entry from configuration
+            Console.Write("Deleting configuration entry...");
+            config.Certificates.Remove(host);
+            Console.WriteLine("OK");
+
+            // Save configuration
+            SaveConfig(cfgFileName);
         }
 
         [Action("Purges stale (unrenewed) hosts and keyfiles from management.")]
