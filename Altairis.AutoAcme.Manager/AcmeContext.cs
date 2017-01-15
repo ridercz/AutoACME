@@ -29,7 +29,7 @@ namespace Altairis.AutoAcme.Manager {
             if (this.client == null) throw new ObjectDisposedException("AcmeContext");
 
             this.log.Write($"Creating registration for '{email}'...");
-            this.account = await this.client.NewRegistraton(email);
+            this.account = await this.client.NewRegistraton("mailto:" + email);
             this.log.WriteLine("OK");
 
             this.log.Write($"Accepting TOS at {this.account.Data.Agreement}...");
@@ -54,13 +54,15 @@ namespace Altairis.AutoAcme.Manager {
                 Type = AuthorizationIdentifierTypes.Dns,
                 Value = hostName
             });
-            this.log.WriteLine($"OK, {ar.Location}");
+            this.log.WriteLine("OK, the following is request URI:");
+            this.log.WriteLine(ar.Location);
 
             // Get challenge
             this.log.Write("Getting challenge...");
             var ch = ar.Data.Challenges.Where(x => x.Type == ChallengeTypes.Http01).First();
             var keyAuthString = this.client.ComputeKeyAuthorization(ch);
-            this.log.WriteLine($"OK, {ch.Uri}");
+            this.log.WriteLine("OK, the following is challenge URI:");
+            this.log.WriteLine(ch.Uri);
 
             // Wait for challenge callback to complete
             challengeCallback(ch.Token, keyAuthString);
@@ -80,6 +82,7 @@ namespace Altairis.AutoAcme.Manager {
                 retryCount--;
             }
             if (ar.Data.Status != EntityStatus.Valid) throw new Exception($"Authorization not valid. Last known status: {ar.Data.Status}");
+            Console.WriteLine("OK");
 
             // Clean up challenge
             cleanupCallback(ch.Token);

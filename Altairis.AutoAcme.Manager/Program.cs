@@ -114,8 +114,55 @@ namespace Altairis.AutoAcme.Manager {
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
             verboseMode = verbose;
+            LoadConfig(cfgFileName);
+            hostName = hostName.Trim().ToLower();
 
-            throw new NotImplementedException();
+            // Check if there already is host with this name
+            Console.Write("Checking host...");
+            if (config.Certificates.Any(x => x.CommonName.Equals(hostName))) CrashExit($"Host '{hostName}' is already managed.");
+            Console.WriteLine("OK");
+
+            // Request certificate
+            CertificateRequestResult result;
+            using (var ac = new AcmeContext(Console.Out, config.ServerUri)) {
+                ac.Login(config.EmailAddress);
+                result = ac.GetCertificate(
+                    hostName: hostName,
+                    pfxPassword: config.PfxPassword,
+                    challengeCallback: CreateChallenge,
+                    cleanupCallback: CleanupChallenge,
+                    retryCount: config.ChallengeVerificationRetryCount,
+                    retryTime: TimeSpan.FromSeconds(config.ChallengeVerificationWaitSeconds));
+            }
+
+            // Display certificate into
+            Console.WriteLine("Certificate information:");
+            Console.WriteLine($"  Issuer:        {result.Certificate.Issuer}");
+            Console.WriteLine($"  Subject:       {result.Certificate.Subject}");
+            Console.WriteLine($"  Serial number: {result.Certificate.SerialNumber}");
+            Console.WriteLine($"  Not before:    {result.Certificate.NotBefore:o}");
+            Console.WriteLine($"  Not before:    {result.Certificate.NotAfter:o}");
+            Console.WriteLine($"  Thumbprint:    {result.Certificate.Thumbprint}");
+
+            // Save to PFX file
+            var pfxFileName = Path.Combine(config.PfxFolder, hostName + ".pfx");
+            Console.Write($"Saving PFX to {pfxFileName}...");
+            File.WriteAllBytes(pfxFileName, result.PfxData);
+            Console.WriteLine("OK");
+
+            // Update database entry
+            Console.Write("Updating database entry...");
+            config.Certificates.Add(new CertInfo {
+                CommonName = hostName,
+                NotBefore = result.Certificate.NotBefore,
+                NotAfter = result.Certificate.NotAfter,
+                SerialNumber = result.Certificate.SerialNumber,
+                Thumbprint = result.Certificate.Thumbprint
+            });
+            Console.WriteLine("OK");
+
+            // Save configuration
+            SaveConfig(cfgFileName);
         }
 
         [Action("Deletes host and keyfile from management.")]
@@ -163,6 +210,41 @@ namespace Altairis.AutoAcme.Manager {
 
         // Helper methods
 
+        private static void CreateChallenge(string tokenId, string authString) {
+            if (tokenId == null) throw new ArgumentNullException(nameof(tokenId));
+            if (string.IsNullOrWhiteSpace(tokenId)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(tokenId));
+            if (authString == null) throw new ArgumentNullException(nameof(authString));
+            if (string.IsNullOrWhiteSpace(authString)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(authString));
+
+            var fileName = Path.Combine(config.ChallengeFolder, tokenId);
+            try {
+                Console.Write($"Writing challenge to {fileName}...");
+                File.WriteAllText(fileName, authString);
+                Console.WriteLine("OK");
+            }
+            catch (Exception ex) {
+                CrashExit(ex);
+            }
+        }
+
+        private static void CleanupChallenge(string tokenId) {
+            var fileName = Path.Combine(config.ChallengeFolder, tokenId);
+            if (!File.Exists(fileName)) return;
+            try {
+                Console.Write($"Deleting challenge from {fileName}...");
+                File.Delete(fileName);
+                Console.WriteLine("OK");
+            }
+            catch (Exception ex) {
+                Console.WriteLine("Warning!");
+                Console.WriteLine(ex.Message);
+                if (verboseMode) {
+                    Console.WriteLine();
+                    Console.WriteLine(ex);
+                }
+            }
+        }
+
         private static void LoadConfig(string cfgFileName) {
             if (cfgFileName == null) throw new ArgumentNullException(nameof(cfgFileName));
             if (string.IsNullOrWhiteSpace(cfgFileName)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(cfgFileName));
@@ -202,7 +284,7 @@ namespace Altairis.AutoAcme.Manager {
             Console.WriteLine(ex.Message);
             if (verboseMode) {
                 Console.WriteLine();
-                Console.WriteLine(ex.ToString());
+                Console.WriteLine(ex);
             }
             Environment.Exit(ERRORLEVEL_FAILURE);
         }
