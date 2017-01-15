@@ -9,9 +9,11 @@ namespace Altairis.AutoAcme.Manager.Configuration {
 
         public string EmailAddress { get; set; } = "example@example.com";
 
-        public string ChallengeFolder { get; set; } = @"C:\InetPub\wwwroot\.well-known\acme-challenge";
+        public string ChallengeFolder { get; set; } = @"C:\InetPub\wwwroot\AutoAcme";
 
-        public string CertStoreFolder { get; set; } = @"C:\CentralCertStore";
+        public string PfxFolder { get; set; } = @"C:\CertStore\PFX";
+
+        public string PfxPassword { get; set; }
 
         public Uri ServerUri { get; set; } = WellKnownServers.LetsEncrypt;
 

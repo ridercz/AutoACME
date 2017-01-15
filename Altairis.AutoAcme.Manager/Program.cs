@@ -30,21 +30,67 @@ namespace Altairis.AutoAcme.Manager {
         [Action("Initializes configuration file with default values.")]
         public static void InitCfg(
             [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string fileName,
-            [Optional(false, "s", Description = "Use Let's Encrypt staging server")] bool useStagingServer,
             [Optional(false, "y", Description = "Overwrite existing file")] bool overwrite,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
             verboseMode = verbose;
 
+            // Check if config file already exists
+            if (!overwrite && File.Exists(fileName)) CrashExit("File already exists. Use /y to overwrite.");
+
             // Create default configuration
-            Console.Write("Creating default configuration...");
             var defaultConfig = new Configuration.Database();
-            if (useStagingServer) defaultConfig.ServerUri = WellKnownServers.LetsEncryptStaging;
-            Console.WriteLine("OK");
+
+            // Ask some questions
+            Console.WriteLine("-------------------------------------------------------------------------------");
+            Console.WriteLine("         Please answer the following questions to build configuration:         ");
+            Console.WriteLine("-------------------------------------------------------------------------------");
+
+            Console.WriteLine("Let's Encrypt needs your e-mail address, ie. webmaster@example.com. This email");
+            Console.WriteLine("would be used for critical communication, such as certificate expiration when");
+            Console.WriteLine("no renewed certificate has been issued etc. Type your e-mail and press ENTER.");
+            Console.Write("> ");
+            defaultConfig.EmailAddress = Console.ReadLine();
+
+            Console.WriteLine("Enter the folder for challenge verification files. Default path is:");
+            Console.WriteLine(defaultConfig.ChallengeFolder);
+            Console.WriteLine("To use it, just press ENTER.");
+            Console.Write("> ");
+            var challengePath = Console.ReadLine();
+            if (!string.IsNullOrWhiteSpace(challengePath)) defaultConfig.ChallengeFolder = challengePath;
+
+            Console.WriteLine("Enter the folder where PFX files are to be stored. Default path is:");
+            Console.WriteLine(defaultConfig.PfxFolder);
+            Console.WriteLine("To use it, just press ENTER.");
+            Console.Write("> ");
+            var pfxPath = Console.ReadLine();
+            if (!string.IsNullOrWhiteSpace(pfxPath)) defaultConfig.PfxFolder = pfxPath;
+
+            Console.WriteLine("Enter the password used for encryption of PFX files. The password provides some");
+            Console.WriteLine("additional protection, but should not be too relied upon. It will be stored in");
+            Console.WriteLine("the configuration file in plain text.");
+            Console.Write("> ");
+            defaultConfig.PfxPassword = Console.ReadLine();
+
+            Console.WriteLine("Enter URL of the ACME server you are going to use:");
+            Console.WriteLine(" - To use Let's Encrypt production server, just press ENTER");
+            Console.WriteLine(" - To use Let's Encrypt staging server, type 'staging' and press ENTER");
+            Console.WriteLine(" - To use other server, type its URL and press ENTER");
+            Console.Write("> ");
+            var acmeServer = Console.ReadLine();
+            if (string.IsNullOrWhiteSpace(acmeServer)) {
+                defaultConfig.ServerUri = WellKnownServers.LetsEncrypt;
+            }
+            else if (acmeServer.Trim().Equals("staging", StringComparison.OrdinalIgnoreCase)) {
+                defaultConfig.ServerUri = WellKnownServers.LetsEncryptStaging;
+            }
+            else {
+                defaultConfig.ServerUri = new Uri(acmeServer);
+            }
+            Console.WriteLine();
 
             // Save to file
             Console.Write($"Saving to file '{fileName}'...");
-            if (!overwrite && File.Exists(fileName)) CrashExit("File already exists. Use /y to overwrite.");
             try {
                 defaultConfig.Save(fileName);
             }
@@ -53,8 +99,8 @@ namespace Altairis.AutoAcme.Manager {
             }
             Console.WriteLine("OK");
             Console.WriteLine();
-            Console.WriteLine("Default configuration file was created. It's pretty useless now, however.");
-            Console.WriteLine("Please open it and change values to suit your needs.");
+            Console.WriteLine("There are some additional options you can set in configuration file directly.");
+            Console.WriteLine("See documentation at www.autoacme.net for reference.");
         }
 
         [Action("Add new host to manage.")]
