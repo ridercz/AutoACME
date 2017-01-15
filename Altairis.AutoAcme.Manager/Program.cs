@@ -207,6 +207,37 @@ namespace Altairis.AutoAcme.Manager {
             SaveConfig(cfgFileName);
         }
 
+        [Action("Lists all host and certificate information")]
+        public static void List(
+            [Optional(false, "xh", Description = "Do not list column headers")] bool skipHeaders,
+            [Optional("TAB", "cs", Description = "Column separator")] string columnSeparator,
+            [Optional("o", "df", Description = "Date format string")] string dateFormat,
+            [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string cfgFileName,
+            [Optional(false, Description = "Show verbose error messages")] bool verbose) {
+
+            verboseMode = verbose;
+            if (columnSeparator.Equals("TAB", StringComparison.OrdinalIgnoreCase)) columnSeparator = "\t";
+            LoadConfig(cfgFileName);
+
+            // Print headers
+            if (!skipHeaders) Console.WriteLine(string.Join(columnSeparator,
+                 "Common Name",
+                 "Not Before",
+                 "Not After",
+                 "Serial Number",
+                 "Thumbprint"));
+
+            // Print items
+            foreach (var item in config.Certificates) {
+                Console.WriteLine(string.Join(columnSeparator,
+                    item.CommonName,
+                    item.NotBefore.ToString(dateFormat),
+                    item.NotAfter.ToString(dateFormat),
+                    item.SerialNumber,
+                    item.Thumbprint));
+            }
+        }
+
         [Action("Purges stale (unrenewed) hosts and keyfiles from management.")]
         public static void Purge(
             [Optional(false, "wi", Description = "What if - only show certs to be purged")] bool whatIf,
