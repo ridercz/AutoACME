@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Altairis.AutoAcme.Manager.Configuration;
 using Certes.Acme;
 using NConsoler;
 
@@ -14,6 +15,7 @@ namespace Altairis.AutoAcme.Manager {
         private const string DEFAULT_CONFIG_NAME = "autoacme.json";
 
         private static bool verboseMode;
+        private static Database config;
 
         static void Main(string[] args) {
             Console.WriteLine($"Altairis AutoACME Manager version {System.Reflection.Assembly.GetExecutingAssembly().GetName().Version}");
@@ -80,6 +82,7 @@ namespace Altairis.AutoAcme.Manager {
 
         [Action("Purges stale (unrenewed) hosts and keyfiles from management.")]
         public static void Purge(
+            [Optional(false, "wi", Description = "What if - only show certs to be purged")] bool whatIf,
             [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string fileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
@@ -90,6 +93,7 @@ namespace Altairis.AutoAcme.Manager {
 
         [Action("Renews certificates expiring in near future.")]
         public static void Renew(
+            [Optional(false, "wi", Description = "What if - only show certs to be renewed")] bool whatIf,
             [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string fileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
@@ -100,16 +104,43 @@ namespace Altairis.AutoAcme.Manager {
 
         [Action("Combines 'renew' and 'purge'.")]
         public static void Process(
+            [Optional(false, "wi", Description = "What if - only show certs to be renewed")] bool whatIf,
             [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string fileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
-            verboseMode = verbose;
-
-            Renew(fileName, verbose);
-            Purge(fileName, verbose);
+            Renew(whatIf, fileName, verbose);
+            Purge(whatIf, fileName, verbose);
         }
 
         // Helper methods
+
+        private static void LoadConfig(string fileName) {
+            if (fileName == null) throw new ArgumentNullException(nameof(fileName));
+            if (string.IsNullOrWhiteSpace(fileName)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(fileName));
+
+            try {
+                Console.Write($"Reading configuration from '{fileName}'...");
+                config = Database.Load(fileName);
+                Console.WriteLine("OK");
+            }
+            catch (Exception ex) {
+                CrashExit(ex);
+            }
+        }
+
+        private static void SaveConfig(string fileName) {
+            if (fileName == null) throw new ArgumentNullException(nameof(fileName));
+            if (string.IsNullOrWhiteSpace(fileName)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(fileName));
+
+            try {
+                Console.Write($"Saving configuration to '{fileName}'...");
+                config.Save(fileName);
+                Console.WriteLine("OK");
+            }
+            catch (Exception ex) {
+                CrashExit(ex);
+            }
+        }
 
         private static void CrashExit(string message) {
             Console.WriteLine("Failed!");
