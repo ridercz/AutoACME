@@ -98,6 +98,7 @@ namespace Altairis.AutoAcme.Manager {
             // Export PFX
             this.log.Write("Exporting PFX...");
             var pfxBuilder = acmeCert.ToPfx();
+            pfxBuilder.FullChain = false;
             var pfxData = pfxBuilder.Build(hostName, pfxPassword);
             this.log.WriteLine("OK");
 
