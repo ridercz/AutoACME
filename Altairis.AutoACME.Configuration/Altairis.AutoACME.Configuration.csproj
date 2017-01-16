@@ -7,8 +7,8 @@
     <ProjectGuid>{BD224F53-B4C4-466E-9AB0-D5D6DA9927F0}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Altairis.AutoACME.Configuration</RootNamespace>
-    <AssemblyName>Altairis.AutoACME.Configuration</AssemblyName>
+    <RootNamespace>Altairis.AutoAcme.Configuration</RootNamespace>
+    <AssemblyName>Altairis.AutoAcme.Configuration</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>

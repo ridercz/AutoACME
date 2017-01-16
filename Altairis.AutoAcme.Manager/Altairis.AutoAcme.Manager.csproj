@@ -98,9 +98,9 @@
     <Content Include="AutoACME.ico" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Altairis.AutoACME.Configuration\Altairis.AutoACME.Configuration.csproj">
+    <ProjectReference Include="..\Altairis.AutoACME.Configuration\Altairis.AutoAcme.Configuration.csproj">
       <Project>{bd224f53-b4c4-466e-9ab0-d5d6da9927f0}</Project>
-      <Name>Altairis.AutoACME.Configuration</Name>
+      <Name>Altairis.AutoAcme.Configuration</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
