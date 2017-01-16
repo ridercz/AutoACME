@@ -32,6 +32,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altairis.AutoAcme.Configura
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altairis.AutoAcme.Core", "Altairis.AutoAcme.Core\Altairis.AutoAcme.Core.csproj", "{3BC6A2E9-42AF-416B-BE11-CEA1A5782BC1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altairis.AutoAcme.IisSync", "Altairis.AutoAcme.IisSync\Altairis.AutoAcme.IisSync.csproj", "{BFFF1EF1-1821-4C7A-8C3C-D1CFFB2B7B2C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -50,6 +52,10 @@ Global
 		{3BC6A2E9-42AF-416B-BE11-CEA1A5782BC1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3BC6A2E9-42AF-416B-BE11-CEA1A5782BC1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3BC6A2E9-42AF-416B-BE11-CEA1A5782BC1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BFFF1EF1-1821-4C7A-8C3C-D1CFFB2B7B2C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BFFF1EF1-1821-4C7A-8C3C-D1CFFB2B7B2C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BFFF1EF1-1821-4C7A-8C3C-D1CFFB2B7B2C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BFFF1EF1-1821-4C7A-8C3C-D1CFFB2B7B2C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
