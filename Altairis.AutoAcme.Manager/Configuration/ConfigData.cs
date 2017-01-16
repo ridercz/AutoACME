@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using Certes.Acme;
+using Newtonsoft.Json;
 
 namespace Altairis.AutoAcme.Manager.Configuration {
     class ConfigData {

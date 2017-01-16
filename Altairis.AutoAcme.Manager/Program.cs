@@ -2,6 +2,8 @@
 using System.IO;
 using System.Linq;
 using Altairis.AutoAcme.Manager.Configuration;
+using Certes.Acme;
+using NConsoler;
 
 namespace Altairis.AutoAcme.Manager {
     class Program {

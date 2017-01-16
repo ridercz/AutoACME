@@ -3,6 +3,9 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
+using Certes;
+using Certes.Acme;
+using Certes.Pkcs;
 
 namespace Altairis.AutoAcme.Manager {
     class AcmeContext : IDisposable {
