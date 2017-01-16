@@ -237,13 +237,55 @@ namespace Altairis.AutoAcme.Manager {
 
         [Action("Purges stale (unrenewed) hosts and keyfiles from management.")]
         public static void Purge(
+            [Optional(null, "d", "Override configuration days after expiration")] int? daysAfterExpiration,
             [Optional(false, "wi", Description = "What if - only show certs to be purged")] bool whatIf,
             [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
             verboseMode = verbose;
+            LoadConfig(cfgFileName);
+            if (daysAfterExpiration == null || !daysAfterExpiration.HasValue) daysAfterExpiration = config.PurgeDaysAfterExpiration;
 
-            throw new NotImplementedException();
+            // Get old expired hosts
+            Console.Write($"Loading hosts expired before {daysAfterExpiration} days...");
+            var expiredHosts = config.Certificates
+                .Where(x => x.NotAfter < DateTime.Today.AddDays(-daysAfterExpiration.Value))
+                .OrderBy(x => x.NotAfter);
+            if (!expiredHosts.Any()) {
+                Console.WriteLine("OK, no hosts to purge");
+                return;
+            }
+            Console.WriteLine($"OK, {expiredHosts.Count()} hosts to purge:");
+
+            // List all items to purge
+            foreach (var item in expiredHosts) {
+                Console.WriteLine($"  Host {item.CommonName} expired {DateTime.Today.Subtract(item.NotAfter).TotalDays} days ago ({item.NotAfter:D,-40})");
+                if (!whatIf) {
+                    // Delete from config
+                    Console.Write("    Deleting from database...");
+                    config.Certificates.Remove(item);
+                    Console.WriteLine("OK");
+
+                    // Delete PFX file
+                    try {
+                        var pfxFileName = Path.Combine(config.PfxFolder, item.CommonName + ".pfx");
+                        Console.Write($"    Deleting PFX file {pfxFileName}...");
+                        File.Delete(pfxFileName);
+                        Console.WriteLine("OK");
+                    }
+                    catch (Exception ex) {
+                        Console.WriteLine("Warning!");
+                        Console.WriteLine("    " + ex.Message);
+
+                        if (verboseMode) {
+                            Console.WriteLine();
+                            Console.WriteLine(ex);
+                        }
+                    }
+                }
+            }
+
+            SaveConfig(cfgFileName);
         }
 
         [Action("Renews certificates expiring in near future.")]
