@@ -25,6 +25,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Images", "Images", "{F299B3
 		Images\AutoAcmeLogo_simple_256.png = Images\AutoAcmeLogo_simple_256.png
 		Images\AutoAcmeLogo_simple_32.png = Images\AutoAcmeLogo_simple_32.png
 		Images\AutoAcmeLogo_simple_512.png = Images\AutoAcmeLogo_simple_512.png
+		Images\background_road.jpg = Images\background_road.jpg
 	EndProjectSection
 EndProject
 Global
