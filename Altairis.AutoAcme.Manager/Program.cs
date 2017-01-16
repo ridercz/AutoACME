@@ -432,15 +432,6 @@ namespace Altairis.AutoAcme.Manager {
             if (string.IsNullOrWhiteSpace(cfgFileName)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(cfgFileName));
 
             try {
-                // Save previous configuration
-                if (cfgStore.AutoSaveConfigBackup && File.Exists(cfgFileName)) {
-                    var oldFileName = cfgFileName + ".old";
-                    Console.Write($"Saving configuration backup to {oldFileName}...");
-                    File.Copy(cfgFileName, oldFileName, overwrite: true);
-                    Console.WriteLine("OK");
-                }
-
-                // Save current configuration
                 Console.Write($"Saving configuration to '{cfgFileName}'...");
                 cfgStore.Save(cfgFileName);
                 Console.WriteLine("OK");
