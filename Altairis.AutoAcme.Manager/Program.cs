@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
-using Altairis.AutoAcme.Manager.Configuration;
+using Altairis.AutoAcme.Configuration;
 using Certes.Acme;
 using NConsoler;
 
@@ -12,7 +12,7 @@ namespace Altairis.AutoAcme.Manager {
         private const string DEFAULT_CONFIG_NAME = "autoacme.json";
 
         private static bool verboseMode;
-        private static ConfigData config;
+        private static Store cfgStore;
 
         static void Main(string[] args) {
             Console.WriteLine($"Altairis AutoACME Manager version {System.Reflection.Assembly.GetExecutingAssembly().GetName().Version}");
@@ -37,7 +37,7 @@ namespace Altairis.AutoAcme.Manager {
             if (!overwrite && File.Exists(cfgFileName)) CrashExit("File already exists. Use /y to overwrite.");
 
             // Create default configuration
-            var defaultConfig = new Configuration.ConfigData();
+            var defaultConfig = new Configuration.Store();
 
             if (!useDefaults) {
                 // Ask some questions
@@ -115,20 +115,20 @@ namespace Altairis.AutoAcme.Manager {
 
             // Check if there already is host with this name
             Console.Write("Checking host...");
-            if (config.Certificates.Any(x => x.CommonName.Equals(hostName))) CrashExit($"Host '{hostName}' is already managed.");
+            if (cfgStore.Hosts.Any(x => x.CommonName.Equals(hostName))) CrashExit($"Host '{hostName}' is already managed.");
             Console.WriteLine("OK");
 
             // Request certificate
             CertificateRequestResult result;
-            using (var ac = new AcmeContext(Console.Out, config.ServerUri)) {
-                ac.Login(config.EmailAddress);
+            using (var ac = new AcmeContext(Console.Out, cfgStore.ServerUri)) {
+                ac.Login(cfgStore.EmailAddress);
                 result = ac.GetCertificate(
                     hostName: hostName,
-                    pfxPassword: config.PfxPassword,
+                    pfxPassword: cfgStore.PfxPassword,
                     challengeCallback: CreateChallenge,
                     cleanupCallback: CleanupChallenge,
-                    retryCount: config.ChallengeVerificationRetryCount,
-                    retryTime: TimeSpan.FromSeconds(config.ChallengeVerificationWaitSeconds));
+                    retryCount: cfgStore.ChallengeVerificationRetryCount,
+                    retryTime: TimeSpan.FromSeconds(cfgStore.ChallengeVerificationWaitSeconds));
             }
 
             // Display certificate into
@@ -141,14 +141,14 @@ namespace Altairis.AutoAcme.Manager {
             Console.WriteLine($"  Thumbprint:    {result.Certificate.Thumbprint}");
 
             // Save to PFX file
-            var pfxFileName = Path.Combine(config.PfxFolder, hostName + ".pfx");
+            var pfxFileName = Path.Combine(cfgStore.PfxFolder, hostName + ".pfx");
             Console.Write($"Saving PFX to {pfxFileName}...");
             File.WriteAllBytes(pfxFileName, result.PfxData);
             Console.WriteLine("OK");
 
             // Update database entry
             Console.Write("Updating database entry...");
-            config.Certificates.Add(new CertInfo {
+            cfgStore.Hosts.Add(new Host {
                 CommonName = hostName,
                 NotBefore = result.Certificate.NotBefore,
                 NotAfter = result.Certificate.NotAfter,
@@ -173,13 +173,13 @@ namespace Altairis.AutoAcme.Manager {
 
             // Check if there is host with this name
             Console.Write($"Finding host {hostName}...");
-            var host = config.Certificates.SingleOrDefault(x => x.CommonName.Equals(hostName));
+            var host = cfgStore.Hosts.SingleOrDefault(x => x.CommonName.Equals(hostName));
             if (host == null) CrashExit($"Host '{hostName}' was not found.");
             Console.WriteLine("OK");
 
             // Delete PFX file
             try {
-                var pfxFileName = Path.Combine(config.PfxFolder, hostName + ".pfx");
+                var pfxFileName = Path.Combine(cfgStore.PfxFolder, hostName + ".pfx");
                 Console.Write($"Deleting PFX file {pfxFileName}...");
                 File.Delete(pfxFileName);
                 Console.WriteLine("OK");
@@ -196,14 +196,14 @@ namespace Altairis.AutoAcme.Manager {
 
             // Delete entry from configuration
             Console.Write("Deleting configuration entry...");
-            config.Certificates.Remove(host);
+            cfgStore.Hosts.Remove(host);
             Console.WriteLine("OK");
 
             // Save configuration
             SaveConfig(cfgFileName);
         }
 
-        [Action("Lists all host and certificate information")]
+        [Action("Lists all host and certificate information.")]
         public static void List(
             [Optional(false, "xh", Description = "Do not list column headers")] bool skipHeaders,
             [Optional("TAB", "cs", Description = "Column separator")] string columnSeparator,
@@ -224,7 +224,7 @@ namespace Altairis.AutoAcme.Manager {
                  "Thumbprint"));
 
             // Print items
-            foreach (var item in config.Certificates) {
+            foreach (var item in cfgStore.Hosts) {
                 Console.WriteLine(string.Join(columnSeparator,
                     item.CommonName,
                     item.NotBefore.ToString(dateFormat),
@@ -243,11 +243,11 @@ namespace Altairis.AutoAcme.Manager {
 
             verboseMode = verbose;
             LoadConfig(cfgFileName);
-            if (daysAfterExpiration == null || !daysAfterExpiration.HasValue) daysAfterExpiration = config.PurgeDaysAfterExpiration;
+            if (daysAfterExpiration == null || !daysAfterExpiration.HasValue) daysAfterExpiration = cfgStore.PurgeDaysAfterExpiration;
 
             // Get old expired hosts
             Console.Write($"Loading hosts expired before {daysAfterExpiration} days...");
-            var expiredHosts = config.Certificates
+            var expiredHosts = cfgStore.Hosts
                 .Where(x => x.NotAfter <= DateTime.Today.AddDays(-daysAfterExpiration.Value))
                 .OrderBy(x => x.NotAfter);
             if (!expiredHosts.Any()) {
@@ -263,12 +263,12 @@ namespace Altairis.AutoAcme.Manager {
 
                 // Delete from config
                 Console.Write("    Deleting from database...");
-                config.Certificates.Remove(item);
+                cfgStore.Hosts.Remove(item);
                 Console.WriteLine("OK");
 
                 // Delete PFX file
                 try {
-                    var pfxFileName = Path.Combine(config.PfxFolder, item.CommonName + ".pfx");
+                    var pfxFileName = Path.Combine(cfgStore.PfxFolder, item.CommonName + ".pfx");
                     Console.Write($"    Deleting PFX file {pfxFileName}...");
                     File.Delete(pfxFileName);
                     Console.WriteLine("OK");
@@ -296,11 +296,11 @@ namespace Altairis.AutoAcme.Manager {
 
             verboseMode = verbose;
             LoadConfig(cfgFileName);
-            if (daysBeforeExpiration == null || !daysBeforeExpiration.HasValue) daysBeforeExpiration = config.PurgeDaysAfterExpiration;
+            if (daysBeforeExpiration == null || !daysBeforeExpiration.HasValue) daysBeforeExpiration = cfgStore.PurgeDaysAfterExpiration;
 
             // Get hosts expiring in near future
             Console.Write($"Loading hosts expiring in {daysBeforeExpiration} days...");
-            var expiringHosts = config.Certificates
+            var expiringHosts = cfgStore.Hosts
                 .Where(x => x.NotAfter <= DateTime.Today.AddDays(daysBeforeExpiration.Value))
                 .OrderBy(x => x.NotAfter);
             if (!expiringHosts.Any()) {
@@ -317,15 +317,15 @@ namespace Altairis.AutoAcme.Manager {
                 // Request certificate
                 CertificateRequestResult result = null;
                 try {
-                    using (var ac = new AcmeContext(Console.Out, config.ServerUri)) {
-                        ac.Login(config.EmailAddress);
+                    using (var ac = new AcmeContext(Console.Out, cfgStore.ServerUri)) {
+                        ac.Login(cfgStore.EmailAddress);
                         result = ac.GetCertificate(
                             hostName: item.CommonName,
-                            pfxPassword: config.PfxPassword,
+                            pfxPassword: cfgStore.PfxPassword,
                             challengeCallback: CreateChallenge,
                             cleanupCallback: CleanupChallenge,
-                            retryCount: config.ChallengeVerificationRetryCount,
-                            retryTime: TimeSpan.FromSeconds(config.ChallengeVerificationWaitSeconds));
+                            retryCount: cfgStore.ChallengeVerificationRetryCount,
+                            retryTime: TimeSpan.FromSeconds(cfgStore.ChallengeVerificationWaitSeconds));
                     }
                 }
                 catch (Exception ex) {
@@ -347,7 +347,7 @@ namespace Altairis.AutoAcme.Manager {
                 Console.WriteLine($"  Thumbprint:    {result.Certificate.Thumbprint}");
 
                 // Save to PFX file
-                var pfxFileName = Path.Combine(config.PfxFolder, item.CommonName + ".pfx");
+                var pfxFileName = Path.Combine(cfgStore.PfxFolder, item.CommonName + ".pfx");
                 Console.Write($"Saving PFX to {pfxFileName}...");
                 File.WriteAllBytes(pfxFileName, result.PfxData);
                 Console.WriteLine("OK");
@@ -383,7 +383,7 @@ namespace Altairis.AutoAcme.Manager {
             if (authString == null) throw new ArgumentNullException(nameof(authString));
             if (string.IsNullOrWhiteSpace(authString)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(authString));
 
-            var fileName = Path.Combine(config.ChallengeFolder, tokenId);
+            var fileName = Path.Combine(cfgStore.ChallengeFolder, tokenId);
             try {
                 Console.Write($"Writing challenge to {fileName}...");
                 File.WriteAllText(fileName, authString);
@@ -395,7 +395,7 @@ namespace Altairis.AutoAcme.Manager {
         }
 
         private static void CleanupChallenge(string tokenId) {
-            var fileName = Path.Combine(config.ChallengeFolder, tokenId);
+            var fileName = Path.Combine(cfgStore.ChallengeFolder, tokenId);
             if (!File.Exists(fileName)) return;
             try {
                 Console.Write($"Deleting challenge from {fileName}...");
@@ -418,7 +418,7 @@ namespace Altairis.AutoAcme.Manager {
 
             try {
                 Console.Write($"Reading configuration from '{cfgFileName}'...");
-                config = ConfigData.Load(cfgFileName);
+                cfgStore = Store.Load(cfgFileName);
                 Console.WriteLine("OK");
             }
             catch (Exception ex) {
@@ -432,7 +432,7 @@ namespace Altairis.AutoAcme.Manager {
 
             try {
                 // Save previous configuration
-                if (config.AutoSaveConfigBackup && File.Exists(cfgFileName)) {
+                if (cfgStore.AutoSaveConfigBackup && File.Exists(cfgFileName)) {
                     var oldFileName = cfgFileName + ".old";
                     Console.Write($"Saving configuration backup to {oldFileName}...");
                     File.Copy(cfgFileName, oldFileName, overwrite: true);
@@ -441,7 +441,7 @@ namespace Altairis.AutoAcme.Manager {
 
                 // Save current configuration
                 Console.Write($"Saving configuration to '{cfgFileName}'...");
-                config.Save(cfgFileName);
+                cfgStore.Save(cfgFileName);
                 Console.WriteLine("OK");
             }
             catch (Exception ex) {

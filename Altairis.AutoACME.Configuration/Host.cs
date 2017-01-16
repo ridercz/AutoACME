@@ -1,7 +1,7 @@
 ﻿using System;
 
-namespace Altairis.AutoAcme.Manager.Configuration {
-    class CertInfo {
+namespace Altairis.AutoAcme.Configuration {
+    public class Host {
 
         public string CommonName { get; set; }
 

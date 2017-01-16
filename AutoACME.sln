@@ -28,6 +28,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Images", "Images", "{F299B3
 		Images\background_road.jpg = Images\background_road.jpg
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altairis.AutoACME.Configuration", "Altairis.AutoACME.Configuration\Altairis.AutoACME.Configuration.csproj", "{BD224F53-B4C4-466E-9AB0-D5D6DA9927F0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -38,6 +40,10 @@ Global
 		{443F82B3-DF11-450F-A8AE-CA65D4B73506}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{443F82B3-DF11-450F-A8AE-CA65D4B73506}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{443F82B3-DF11-450F-A8AE-CA65D4B73506}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BD224F53-B4C4-466E-9AB0-D5D6DA9927F0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BD224F53-B4C4-466E-9AB0-D5D6DA9927F0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BD224F53-B4C4-466E-9AB0-D5D6DA9927F0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BD224F53-B4C4-466E-9AB0-D5D6DA9927F0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
