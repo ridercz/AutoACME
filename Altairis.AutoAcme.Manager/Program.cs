@@ -106,7 +106,6 @@ namespace Altairis.AutoAcme.Manager {
         [Action("Add new host to manage.")]
         public static void AddHost(
             [Required(Description = "Host name")] string hostName,
-            [Optional(false, "m", Description = "Wait for manual verification")] bool manual,
             [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
@@ -249,7 +248,7 @@ namespace Altairis.AutoAcme.Manager {
             // Get old expired hosts
             Console.Write($"Loading hosts expired before {daysAfterExpiration} days...");
             var expiredHosts = config.Certificates
-                .Where(x => x.NotAfter < DateTime.Today.AddDays(-daysAfterExpiration.Value))
+                .Where(x => x.NotAfter <= DateTime.Today.AddDays(-daysAfterExpiration.Value))
                 .OrderBy(x => x.NotAfter);
             if (!expiredHosts.Any()) {
                 Console.WriteLine("OK, no hosts to purge");
@@ -259,28 +258,28 @@ namespace Altairis.AutoAcme.Manager {
 
             // List all items to purge
             foreach (var item in expiredHosts) {
-                Console.WriteLine($"  Host {item.CommonName} expired {DateTime.Today.Subtract(item.NotAfter).TotalDays} days ago ({item.NotAfter:D,-40})");
-                if (!whatIf) {
-                    // Delete from config
-                    Console.Write("    Deleting from database...");
-                    config.Certificates.Remove(item);
+                Console.WriteLine($"  Host {item.CommonName} expired {DateTime.Today.Subtract(item.NotAfter).TotalDays} days ago ({item.NotAfter:D})");
+                if (whatIf) continue;
+
+                // Delete from config
+                Console.Write("    Deleting from database...");
+                config.Certificates.Remove(item);
+                Console.WriteLine("OK");
+
+                // Delete PFX file
+                try {
+                    var pfxFileName = Path.Combine(config.PfxFolder, item.CommonName + ".pfx");
+                    Console.Write($"    Deleting PFX file {pfxFileName}...");
+                    File.Delete(pfxFileName);
                     Console.WriteLine("OK");
+                }
+                catch (Exception ex) {
+                    Console.WriteLine("Warning!");
+                    Console.WriteLine("    " + ex.Message);
 
-                    // Delete PFX file
-                    try {
-                        var pfxFileName = Path.Combine(config.PfxFolder, item.CommonName + ".pfx");
-                        Console.Write($"    Deleting PFX file {pfxFileName}...");
-                        File.Delete(pfxFileName);
-                        Console.WriteLine("OK");
-                    }
-                    catch (Exception ex) {
-                        Console.WriteLine("Warning!");
-                        Console.WriteLine("    " + ex.Message);
-
-                        if (verboseMode) {
-                            Console.WriteLine();
-                            Console.WriteLine(ex);
-                        }
+                    if (verboseMode) {
+                        Console.WriteLine();
+                        Console.WriteLine(ex);
                     }
                 }
             }
@@ -290,13 +289,80 @@ namespace Altairis.AutoAcme.Manager {
 
         [Action("Renews certificates expiring in near future.")]
         public static void Renew(
+            [Optional(null, "d", "Override configuration days before expiration")] int? daysBeforeExpiration,
             [Optional(false, "wi", Description = "What if - only show certs to be renewed")] bool whatIf,
             [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
             verboseMode = verbose;
+            LoadConfig(cfgFileName);
+            if (daysBeforeExpiration == null || !daysBeforeExpiration.HasValue) daysBeforeExpiration = config.PurgeDaysAfterExpiration;
 
-            throw new NotImplementedException();
+            // Get hosts expiring in near future
+            Console.Write($"Loading hosts expiring in {daysBeforeExpiration} days...");
+            var expiringHosts = config.Certificates
+                .Where(x => x.NotAfter <= DateTime.Today.AddDays(daysBeforeExpiration.Value))
+                .OrderBy(x => x.NotAfter);
+            if (!expiringHosts.Any()) {
+                Console.WriteLine("OK, no hosts to renew");
+                return;
+            }
+            Console.WriteLine($"OK, {expiringHosts.Count()} hosts to renew");
+
+            // Renew them
+            foreach (var item in expiringHosts) {
+                Console.WriteLine($"Host {item.CommonName} expires in {item.NotAfter.Subtract(DateTime.Today).TotalDays} days ({item.NotAfter:D})");
+                if (whatIf) continue;
+
+                // Request certificate
+                CertificateRequestResult result = null;
+                try {
+                    using (var ac = new AcmeContext(Console.Out, config.ServerUri)) {
+                        ac.Login(config.EmailAddress);
+                        result = ac.GetCertificate(
+                            hostName: item.CommonName,
+                            pfxPassword: config.PfxPassword,
+                            challengeCallback: CreateChallenge,
+                            cleanupCallback: CleanupChallenge,
+                            retryCount: config.ChallengeVerificationRetryCount,
+                            retryTime: TimeSpan.FromSeconds(config.ChallengeVerificationWaitSeconds));
+                    }
+                }
+                catch (Exception ex) {
+                    Console.WriteLine($"Renewal failed: {ex.Message}");
+                    if (verboseMode) {
+                        Console.WriteLine();
+                        Console.WriteLine(ex);
+                    }
+                }
+                if (result == null) continue;
+
+                // Display certificate into
+                Console.WriteLine("Certificate information:");
+                Console.WriteLine($"  Issuer:        {result.Certificate.Issuer}");
+                Console.WriteLine($"  Subject:       {result.Certificate.Subject}");
+                Console.WriteLine($"  Serial number: {result.Certificate.SerialNumber}");
+                Console.WriteLine($"  Not before:    {result.Certificate.NotBefore:o}");
+                Console.WriteLine($"  Not before:    {result.Certificate.NotAfter:o}");
+                Console.WriteLine($"  Thumbprint:    {result.Certificate.Thumbprint}");
+
+                // Save to PFX file
+                var pfxFileName = Path.Combine(config.PfxFolder, item.CommonName + ".pfx");
+                Console.Write($"Saving PFX to {pfxFileName}...");
+                File.WriteAllBytes(pfxFileName, result.PfxData);
+                Console.WriteLine("OK");
+
+                // Update database entry
+                Console.Write("Updating database entry...");
+                item.NotBefore = result.Certificate.NotBefore;
+                item.NotAfter = result.Certificate.NotAfter;
+                item.SerialNumber = result.Certificate.SerialNumber;
+                item.Thumbprint = result.Certificate.Thumbprint;
+                Console.WriteLine("OK");
+
+                // Save configuration
+                SaveConfig(cfgFileName);
+            }
         }
 
         [Action("Combines 'renew' and 'purge'.")]
@@ -305,8 +371,8 @@ namespace Altairis.AutoAcme.Manager {
             [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
-            Renew(whatIf, cfgFileName, verbose);
-            Purge(whatIf, cfgFileName, verbose);
+            Renew(null, whatIf, cfgFileName, verbose);
+            Purge(null, whatIf, cfgFileName, verbose);
         }
 
         // Helper methods
