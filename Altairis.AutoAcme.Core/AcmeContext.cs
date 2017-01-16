@@ -7,8 +7,8 @@ using Certes;
 using Certes.Acme;
 using Certes.Pkcs;
 
-namespace Altairis.AutoAcme.Manager {
-    class AcmeContext : IDisposable {
+namespace Altairis.AutoAcme.Core {
+    public class AcmeContext : IDisposable {
         private TextWriter log;
         private AcmeClient client;
         private AcmeAccount account;

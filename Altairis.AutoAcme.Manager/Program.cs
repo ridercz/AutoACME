@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using Altairis.AutoAcme.Configuration;
+using Altairis.AutoAcme.Core;
 using Certes.Acme;
 using NConsoler;
 
