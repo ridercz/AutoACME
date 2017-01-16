@@ -1,12 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Altairis.AutoAcme.Manager.Configuration;
-using Certes.Acme;
-using NConsoler;
 
 namespace Altairis.AutoAcme.Manager {
     class Program {
