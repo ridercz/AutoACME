@@ -8,6 +8,8 @@ using Altairis.AutoAcme.Configuration;
 using Altairis.AutoAcme.Core;
 using Altairis.AutoAcme.IisSync.InetInfo;
 using NConsoler;
+using System.Diagnostics.Tracing;
+using System.Diagnostics;
 
 namespace Altairis.AutoAcme.IisSync {
     class Program {
@@ -19,10 +21,14 @@ namespace Altairis.AutoAcme.IisSync {
         private static Store cfgStore;
 
         static void Main(string[] args) {
-            Console.WriteLine($"Altairis AutoACME IIS Synchronization Tool version {System.Reflection.Assembly.GetExecutingAssembly().GetName().Version}");
-            Console.WriteLine("Copyright (c) Michal A. Valasek - Altairis, 2017");
-            Console.WriteLine("www.autoacme.net | www.rider.cz | www.altairis.cz");
-            Console.WriteLine();
+            Trace.Listeners.Add(new ConsoleTraceListener());
+            Trace.IndentSize = 2;
+
+            Trace.WriteLine($"Altairis AutoACME IIS Synchronization Tool version {System.Reflection.Assembly.GetExecutingAssembly().GetName().Version}");
+            Trace.WriteLine("Copyright (c) Michal A. Valasek - Altairis, 2017");
+            Trace.WriteLine("www.autoacme.net | www.rider.cz | www.altairis.cz");
+            Trace.WriteLine(string.Empty);
+
             Consolery.Run();
         }
 
@@ -42,7 +48,7 @@ namespace Altairis.AutoAcme.IisSync {
             using (var sc = new ServerContext(serverName)) {
                 IEnumerable<BindingInfo> bindings = null;
                 try {
-                    Console.Write($"Getting bindings from '{serverName}'...");
+                    Trace.Write($"Getting bindings from '{serverName}'...");
                     // Get all bindings
                     bindings = sc.GetBindings();
                 }
@@ -60,45 +66,59 @@ namespace Altairis.AutoAcme.IisSync {
 
                 // Get only CCS enabled sites, unless overriden
                 if (!addCcsBinding) bindings = bindings.Where(x => x.CentralCertStore);
-                Console.WriteLine($"OK, {bindings.Count()} bindings found");
+                Trace.WriteLine($"OK, {bindings.Count()} bindings found");
 
                 // Find new hosts
-                Console.Write("Finding new hosts to add...");
+                Trace.Write("Finding new hosts to add...");
                 bindings = bindings.Where(x => !cfgStore.Hosts.Any(h => h.CommonName.Equals(x.Host)));
                 if (!bindings.Any()) {
-                    Console.WriteLine("None");
+                    Trace.WriteLine("None");
                     return;
                 }
-                Console.WriteLine($"OK");
+                Trace.WriteLine($"OK");
 
-                using (var ac = new AcmeContext(Console.Out, cfgStore.ServerUri)) {
+                using (var ac = new AcmeContext(cfgStore.ServerUri)) {
                     // Login to Let's Encrypt service
                     ac.Login(cfgStore.EmailAddress);
 
                     // Add new hosts
+                    Trace.Indent();
                     foreach (var binding in bindings.ToArray()) {
                         // Check if was already added before
                         if (cfgStore.Hosts.Any(h => h.CommonName.Equals(binding.Host, StringComparison.OrdinalIgnoreCase))) continue;
 
-                        Console.WriteLine($"Adding new host {binding.Host}:");
+                        Trace.WriteLine($"Adding new host {binding.Host}:");
+                        Trace.Indent();
 
                         // Request certificate
-                        var result = ac.GetCertificate(
+                        CertificateRequestResult result = null;
+                        try {
+                            result = ac.GetCertificate(
                                 hostName: binding.Host,
                                 pfxPassword: cfgStore.PfxPassword,
                                 challengeCallback: CreateChallenge,
                                 cleanupCallback: CleanupChallenge,
                                 retryCount: cfgStore.ChallengeVerificationRetryCount,
                                 retryTime: TimeSpan.FromSeconds(cfgStore.ChallengeVerificationWaitSeconds));
+                        }
+                        catch (Exception ex) {
+                            Trace.WriteLine($"Process failed: {ex.Message}");
+                            if (verboseMode) {
+                                Trace.WriteLine(string.Empty);
+                                Trace.WriteLine(ex);
+                            }
+                            Trace.Unindent();
+                            continue;
+                        }
 
                         // Save to PFX file
                         var pfxFileName = Path.Combine(cfgStore.PfxFolder, binding.Host + ".pfx");
-                        Console.Write($"Saving PFX to {pfxFileName}...");
+                        Trace.Write($"Saving PFX to {pfxFileName}...");
                         File.WriteAllBytes(pfxFileName, result.PfxData);
-                        Console.WriteLine("OK");
+                        Trace.WriteLine("OK");
 
                         // Update database entry
-                        Console.Write("Updating database entry...");
+                        Trace.Write("Updating database entry...");
                         cfgStore.Hosts.Add(new Host {
                             CommonName = binding.Host,
                             NotBefore = result.Certificate.NotBefore,
@@ -106,7 +126,7 @@ namespace Altairis.AutoAcme.IisSync {
                             SerialNumber = result.Certificate.SerialNumber,
                             Thumbprint = result.Certificate.Thumbprint
                         });
-                        Console.WriteLine("OK");
+                        Trace.WriteLine("OK");
                         SaveConfig(cfgFileName);
 
                         // Add HTTPS + CCS binding
@@ -116,15 +136,18 @@ namespace Altairis.AutoAcme.IisSync {
                             && b.CentralCertStore);
                         if (addCcsBinding && !alreadyHasHttpsWithCcs) {
                             try {
-                                Console.Write($"Adding HTTPS CCS binding for {binding.Host}...");
+                                Trace.Write($"Adding HTTPS CCS binding for {binding.Host}...");
                                 sc.AddCcsBinding(binding.SiteName, binding.Host, requireSni);
-                                Console.WriteLine("OK");
+                                Trace.WriteLine("OK");
                             }
                             catch (Exception ex) {
                                 CrashExit(ex);
                             }
                         }
+
+                        Trace.Unindent();
                     }
+                    Trace.Unindent();
                 }
             }
         }
@@ -141,7 +164,7 @@ namespace Altairis.AutoAcme.IisSync {
             if (columnSeparator.Equals("TAB", StringComparison.OrdinalIgnoreCase)) columnSeparator = "\t";
 
             try {
-                Console.Write("Getting bindings...");
+                Trace.Write("Getting bindings...");
                 int count = 0;
                 var sb = new StringBuilder();
                 if (!skipHeaders) sb.AppendLine(string.Join(columnSeparator,
@@ -171,15 +194,15 @@ namespace Altairis.AutoAcme.IisSync {
                         count++;
                     }
                 }
-                Console.WriteLine($"OK, {count} bindings");
+                Trace.WriteLine($"OK, {count} bindings");
 
                 if (string.IsNullOrWhiteSpace(fileName)) {
-                    Console.WriteLine(sb);
+                    Trace.WriteLine(sb);
                 }
                 else {
-                    Console.Write($"Writing to file '{fileName}'...");
+                    Trace.Write($"Writing to file '{fileName}'...");
                     File.WriteAllText(fileName, sb.ToString());
-                    Console.WriteLine("OK");
+                    Trace.WriteLine("OK");
                 }
             }
             catch (Exception ex) {
@@ -197,9 +220,9 @@ namespace Altairis.AutoAcme.IisSync {
 
             var fileName = Path.Combine(cfgStore.ChallengeFolder, tokenId);
             try {
-                Console.Write($"Writing challenge to {fileName}...");
+                Trace.Write($"Writing challenge to {fileName}...");
                 File.WriteAllText(fileName, authString);
-                Console.WriteLine("OK");
+                Trace.WriteLine("OK");
             }
             catch (Exception ex) {
                 CrashExit(ex);
@@ -210,16 +233,16 @@ namespace Altairis.AutoAcme.IisSync {
             var fileName = Path.Combine(cfgStore.ChallengeFolder, tokenId);
             if (!File.Exists(fileName)) return;
             try {
-                Console.Write($"Deleting challenge from {fileName}...");
+                Trace.Write($"Deleting challenge from {fileName}...");
                 File.Delete(fileName);
-                Console.WriteLine("OK");
+                Trace.WriteLine("OK");
             }
             catch (Exception ex) {
-                Console.WriteLine("Warning!");
-                Console.WriteLine(ex.Message);
+                Trace.WriteLine("Warning!");
+                Trace.WriteLine(ex.Message);
                 if (verboseMode) {
-                    Console.WriteLine();
-                    Console.WriteLine(ex);
+                    Trace.WriteLine(string.Empty);
+                    Trace.WriteLine(ex);
                 }
             }
         }
@@ -229,9 +252,9 @@ namespace Altairis.AutoAcme.IisSync {
             if (string.IsNullOrWhiteSpace(cfgFileName)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(cfgFileName));
 
             try {
-                Console.Write($"Reading configuration from '{cfgFileName}'...");
+                Trace.Write($"Reading configuration from '{cfgFileName}'...");
                 cfgStore = Store.Load(cfgFileName);
-                Console.WriteLine("OK");
+                Trace.WriteLine("OK");
             }
             catch (Exception ex) {
                 CrashExit(ex);
@@ -243,9 +266,9 @@ namespace Altairis.AutoAcme.IisSync {
             if (string.IsNullOrWhiteSpace(cfgFileName)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(cfgFileName));
 
             try {
-                Console.Write($"Saving configuration to '{cfgFileName}'...");
+                Trace.Write($"Saving configuration to '{cfgFileName}'...");
                 cfgStore.Save(cfgFileName);
-                Console.WriteLine("OK");
+                Trace.WriteLine("OK");
             }
             catch (Exception ex) {
                 CrashExit(ex);
@@ -253,17 +276,17 @@ namespace Altairis.AutoAcme.IisSync {
         }
 
         private static void CrashExit(string message) {
-            Console.WriteLine("Failed!");
-            Console.WriteLine(message);
+            Trace.WriteLine("Failed!");
+            Trace.WriteLine(message);
             Environment.Exit(ERRORLEVEL_FAILURE);
         }
 
         private static void CrashExit(Exception ex) {
-            Console.WriteLine("Failed!");
-            Console.WriteLine(ex.Message);
+            Trace.WriteLine("Failed!");
+            Trace.WriteLine(ex.Message);
             if (verboseMode) {
-                Console.WriteLine();
-                Console.WriteLine(ex);
+                Trace.WriteLine(string.Empty);
+                Trace.WriteLine(ex);
             }
             Environment.Exit(ERRORLEVEL_FAILURE);
         }

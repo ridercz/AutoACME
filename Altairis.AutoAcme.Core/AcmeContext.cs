@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
@@ -9,15 +10,11 @@ using Certes.Pkcs;
 
 namespace Altairis.AutoAcme.Core {
     public class AcmeContext : IDisposable {
-        private TextWriter log;
         private AcmeClient client;
         private AcmeAccount account;
 
-        public AcmeContext(TextWriter logWriter, Uri serverAddress) {
-            if (logWriter == null) throw new ArgumentNullException(nameof(logWriter));
+        public AcmeContext(Uri serverAddress) {
             if (serverAddress == null) throw new ArgumentNullException(nameof(serverAddress));
-
-            this.log = logWriter;
             this.client = new AcmeClient(serverAddress);
         }
 
@@ -26,14 +23,14 @@ namespace Altairis.AutoAcme.Core {
             if (string.IsNullOrWhiteSpace(email)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(email));
             if (this.client == null) throw new ObjectDisposedException("AcmeContext");
 
-            this.log.Write($"Creating registration for '{email}'...");
+            Trace.Write($"Creating registration for '{email}'...");
             this.account = await this.client.NewRegistraton("mailto:" + email);
-            this.log.WriteLine("OK");
+            Trace.WriteLine("OK");
 
-            this.log.Write($"Accepting TOS at {this.account.Data.Agreement}...");
+            Trace.Write($"Accepting TOS at {this.account.Data.Agreement}...");
             this.account.Data.Agreement = this.account.GetTermsOfServiceUri();
             this.account = await this.client.UpdateRegistration(account);
-            this.log.WriteLine("OK");
+            Trace.WriteLine("OK");
         }
 
         public void Login(string email) {
@@ -47,33 +44,33 @@ namespace Altairis.AutoAcme.Core {
             if (this.client == null) throw new ObjectDisposedException("AcmeContext");
 
             // Create authorization request
-            this.log.Write("Creating authorization request...");
+            Trace.Write("Creating authorization request...");
             var ar = await this.client.NewAuthorization(new AuthorizationIdentifier {
                 Type = AuthorizationIdentifierTypes.Dns,
                 Value = hostName
             });
-            this.log.WriteLine("OK, the following is request URI:");
-            this.log.WriteLine(ar.Location);
+            Trace.WriteLine("OK, the following is request URI:");
+            Trace.WriteLine(ar.Location);
 
             // Get challenge
-            this.log.Write("Getting challenge...");
+            Trace.Write("Getting challenge...");
             var ch = ar.Data.Challenges.Where(x => x.Type == ChallengeTypes.Http01).First();
             var keyAuthString = this.client.ComputeKeyAuthorization(ch);
-            this.log.WriteLine("OK, the following is challenge URI:");
-            this.log.WriteLine(ch.Uri);
+            Trace.WriteLine("OK, the following is challenge URI:");
+            Trace.WriteLine(ch.Uri);
 
             // Wait for challenge callback to complete
             challengeCallback(ch.Token, keyAuthString);
 
             // Complete challenge
-            this.log.Write("Completing challenge...");
+            Trace.Write("Completing challenge...");
             var chr = await this.client.CompleteChallenge(ch);
             Console.WriteLine("OK");
 
             // Wait for authorization
-            this.log.Write("Waiting for authorization..");
+            Trace.Write("Waiting for authorization..");
             while (retryCount > 0) {
-                this.log.Write(".");
+                Trace.Write(".");
                 ar = await this.client.GetAuthorization(chr.Location);
                 if (ar.Data.Status != EntityStatus.Pending) break;
                 await Task.Delay(retryTime);
@@ -86,19 +83,19 @@ namespace Altairis.AutoAcme.Core {
             cleanupCallback(ch.Token);
 
             // Get certificate
-            this.log.Write("Requesting certificate...");
+            Trace.Write("Requesting certificate...");
             var csr = new CertificationRequestBuilder();
             csr.AddName($"CN={hostName}");
             var acmeCert = await this.client.NewCertificate(csr);
             var cert = new X509Certificate2(acmeCert.Raw);
-            this.log.WriteLine("OK");
+            Trace.WriteLine("OK");
 
             // Export PFX
-            this.log.Write("Exporting PFX...");
+            Trace.Write("Exporting PFX...");
             var pfxBuilder = acmeCert.ToPfx();
             pfxBuilder.FullChain = false;
             var pfxData = pfxBuilder.Build(hostName, pfxPassword);
-            this.log.WriteLine("OK");
+            Trace.WriteLine("OK");
 
             return new CertificateRequestResult {
                 Certificate = cert,
@@ -125,10 +122,6 @@ namespace Altairis.AutoAcme.Core {
                 if (this.client != null) {
                     this.client.Dispose();
                     this.client = null;
-                }
-                if (this.log != null) {
-                    this.log.Dispose();
-                    this.log = null;
                 }
             }
         }
