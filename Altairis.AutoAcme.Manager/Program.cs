@@ -227,14 +227,16 @@ namespace Altairis.AutoAcme.Manager {
                  "Not Before",
                  "Not After",
                  "Serial Number",
-                 "Thumbprint"));
+                 "Thumbprint",
+                 "DaysToExpire"));
             foreach (var item in cfgStore.Hosts) {
                 sb.AppendLine(string.Join(columnSeparator,
                     item.CommonName,
                     item.NotBefore.ToString(dateFormat),
                     item.NotAfter.ToString(dateFormat),
                     item.SerialNumber,
-                    item.Thumbprint));
+                    item.Thumbprint,
+                    Math.Floor(item.NotAfter.Subtract(DateTime.Now).TotalDays)));
                 count++;
             }
             Console.WriteLine($"OK, {count} hosts");
@@ -265,7 +267,7 @@ namespace Altairis.AutoAcme.Manager {
             LoadConfig(cfgFileName);
 
             // Get old expired hosts
-            Console.Write($"Loading hosts expired before {cfgStore.PurgeDaysAfterExpiration} days...");
+            Console.Write($"Loading hosts expired at least {cfgStore.PurgeDaysAfterExpiration} days ago...");
             var expiredHosts = cfgStore.Hosts
                 .Where(x => x.NotAfter <= DateTime.Today.AddDays(-cfgStore.PurgeDaysAfterExpiration))
                 .OrderBy(x => x.NotAfter);
@@ -277,7 +279,8 @@ namespace Altairis.AutoAcme.Manager {
 
             // List all items to purge
             foreach (var item in expiredHosts) {
-                Console.WriteLine($"  Host {item.CommonName} expired {DateTime.Today.Subtract(item.NotAfter).TotalDays} days ago ({item.NotAfter:D})");
+                var dae = Math.Floor(DateTime.Today.Subtract(item.NotAfter).TotalDays);
+                Console.WriteLine($"  Host {item.CommonName} expired {dae} days ago ({item.NotAfter:D})");
                 if (whatIf) continue;
 
                 // Delete from config
@@ -318,7 +321,7 @@ namespace Altairis.AutoAcme.Manager {
             // Get hosts expiring in near future
             Console.Write($"Loading hosts expiring in {cfgStore.RenewDaysBeforeExpiration} days...");
             var expiringHosts = cfgStore.Hosts
-                .Where(x => x.NotAfter <= DateTime.Today.AddDays(cfgStore.RenewDaysBeforeExpiration))
+                .Where(x => x.NotAfter <= DateTime.Now.AddDays(cfgStore.RenewDaysBeforeExpiration))
                 .OrderBy(x => x.NotAfter);
             if (!expiringHosts.Any()) {
                 Console.WriteLine("OK, no hosts to renew");
@@ -328,7 +331,14 @@ namespace Altairis.AutoAcme.Manager {
 
             // Renew them
             foreach (var item in expiringHosts) {
-                Console.WriteLine($"Host {item.CommonName} expires in {item.NotAfter.Subtract(DateTime.Today).TotalDays} days ({item.NotAfter:D})");
+                var dte = Math.Floor(item.NotAfter.Subtract(DateTime.Now).TotalDays);
+                if (dte < 0) {
+                    Console.WriteLine($"Host {item.CommonName} expired {-dte} days ago ({item.NotAfter:D})");
+                }
+                else {
+                    Console.WriteLine($"Host {item.CommonName} expires in {dte} days ({item.NotAfter:D})");
+                }
+
                 if (whatIf) continue;
 
                 // Request certificate
