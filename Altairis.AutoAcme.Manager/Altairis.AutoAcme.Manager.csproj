@@ -98,7 +98,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Altairis.AutoAcme.Configuration\Altairis.AutoAcme.Configuration.csproj">
       <Project>{bd224f53-b4c4-466e-9ab0-d5d6da9927f0}</Project>
-      <Name>_Altairis.AutoAcme.Configuration</Name>
+      <Name>Altairis.AutoAcme.Configuration</Name>
     </ProjectReference>
     <ProjectReference Include="..\Altairis.AutoAcme.Core\Altairis.AutoAcme.Core.csproj">
       <Project>{3bc6a2e9-42af-416b-be11-cea1a5782bc1}</Project>
