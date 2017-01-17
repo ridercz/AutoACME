@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Altairis.AutoAcme.Configuration;
+using Altairis.AutoAcme.Core;
 using Altairis.AutoAcme.IisSync.InetInfo;
 using NConsoler;
 
@@ -29,23 +30,103 @@ namespace Altairis.AutoAcme.IisSync {
 
         [Action("Add hosts from IIS bindings.")]
         public static void AddHosts(
-            [Optional(false, "wi", Description = "What if - only show hosts to be added")] bool whatIf,
             [Optional(false, "ccs", Description = "Add CCS binding to hosts without one and add them as well")] bool addCcsBinding,
+            [Optional(false, "sni", Description = "Require SNI for newly created bindings")] bool requireSni,
             [Optional("localhost", "s", Description = "IIS server name")] string serverName,
             [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
-            throw new NotImplementedException();
-        }
+            verboseMode = verbose;
+            LoadConfig(cfgFileName);
 
-        [Action("Delete hosts not present in IIS bindings.")]
-        public static void DelHosts(
-            [Optional(false, "wi", Description = "What if - only show hosts to be deleted")] bool whatIf,
-            [Optional("localhost", "s", Description = "IIS server name")] string serverName,
-            [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string cfgFileName,
-            [Optional(false, Description = "Show verbose error messages")] bool verbose) {
+            using (var sc = new ServerContext(serverName)) {
+                IEnumerable<BindingInfo> bindings = null;
+                try {
+                    Console.Write($"Getting bindings from '{serverName}'...");
+                    // Get all bindings
+                    bindings = sc.GetBindings();
+                }
+                catch (Exception ex) {
+                    CrashExit(ex);
+                }
 
-            throw new NotImplementedException();
+                // Get only bindings matching the following criteria
+                //   - host name specified
+                //   - site is running
+                //   - site is running on default port
+                bindings = from b in bindings
+                           where !string.IsNullOrEmpty(b.Host) && b.SiteStarted && b.IsDefaultPort
+                           select b;
+
+                // Get only CCS enabled sites, unless overriden
+                if (!addCcsBinding) bindings = bindings.Where(x => x.CentralCertStore);
+                Console.WriteLine($"OK, {bindings.Count()} bindings found");
+
+                // Find new hosts
+                Console.Write("Finding new hosts to add...");
+                bindings = bindings.Where(x => !cfgStore.Hosts.Any(h => h.CommonName.Equals(x.Host)));
+                if (!bindings.Any()) {
+                    Console.WriteLine("None");
+                    return;
+                }
+                Console.WriteLine($"OK");
+
+                using (var ac = new AcmeContext(Console.Out, cfgStore.ServerUri)) {
+                    // Login to Let's Encrypt service
+                    ac.Login(cfgStore.EmailAddress);
+
+                    // Add new hosts
+                    foreach (var binding in bindings.ToArray()) {
+                        // Check if was already added before
+                        if (cfgStore.Hosts.Any(h => h.CommonName.Equals(binding.Host, StringComparison.OrdinalIgnoreCase))) continue;
+
+                        Console.WriteLine($"Adding new host {binding.Host}:");
+
+                        // Request certificate
+                        var result = ac.GetCertificate(
+                                hostName: binding.Host,
+                                pfxPassword: cfgStore.PfxPassword,
+                                challengeCallback: CreateChallenge,
+                                cleanupCallback: CleanupChallenge,
+                                retryCount: cfgStore.ChallengeVerificationRetryCount,
+                                retryTime: TimeSpan.FromSeconds(cfgStore.ChallengeVerificationWaitSeconds));
+
+                        // Save to PFX file
+                        var pfxFileName = Path.Combine(cfgStore.PfxFolder, binding.Host + ".pfx");
+                        Console.Write($"Saving PFX to {pfxFileName}...");
+                        File.WriteAllBytes(pfxFileName, result.PfxData);
+                        Console.WriteLine("OK");
+
+                        // Update database entry
+                        Console.Write("Updating database entry...");
+                        cfgStore.Hosts.Add(new Host {
+                            CommonName = binding.Host,
+                            NotBefore = result.Certificate.NotBefore,
+                            NotAfter = result.Certificate.NotAfter,
+                            SerialNumber = result.Certificate.SerialNumber,
+                            Thumbprint = result.Certificate.Thumbprint
+                        });
+                        Console.WriteLine("OK");
+                        SaveConfig(cfgFileName);
+
+                        // Add HTTPS + CCS binding
+                        var alreadyHasHttpsWithCcs = bindings.Any(b =>
+                            b.Host.Equals(binding.Host, StringComparison.OrdinalIgnoreCase)
+                            && b.Protocol.Equals("https", StringComparison.OrdinalIgnoreCase)
+                            && b.CentralCertStore);
+                        if (addCcsBinding && !alreadyHasHttpsWithCcs) {
+                            try {
+                                Console.Write($"Adding HTTPS CCS binding for {binding.Host}...");
+                                sc.AddCcsBinding(binding.SiteName, binding.Host, requireSni);
+                                Console.WriteLine("OK");
+                            }
+                            catch (Exception ex) {
+                                CrashExit(ex);
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         [Action("List IIS site bindings.")]
@@ -72,7 +153,8 @@ namespace Altairis.AutoAcme.IisSync {
                     "Address",
                     "Port",
                     "SNI",
-                    "CCS"));
+                    "CCS",
+                    "Binding Information String"));
                 using (var sc = new ServerContext(serverName)) {
                     foreach (var b in sc.GetBindings()) {
                         sb.AppendLine(string.Join(columnSeparator,
@@ -84,7 +166,8 @@ namespace Altairis.AutoAcme.IisSync {
                             b.Address,
                             b.Port,
                             b.Sni,
-                            b.CentralCertStore));
+                            b.CentralCertStore,
+                            b.BindingInformationString));
                         count++;
                     }
                 }

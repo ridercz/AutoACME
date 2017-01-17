@@ -16,5 +16,11 @@ namespace Altairis.AutoAcme.IisSync.InetInfo {
         public bool Sni { get; set; }
         public string Address { get; internal set; }
         public int Port { get; internal set; }
+
+        public bool IsDefaultPort =>
+            (this.Protocol.Equals("http", StringComparison.OrdinalIgnoreCase) && this.Port == 80) ||
+            (this.Protocol.Equals("https", StringComparison.OrdinalIgnoreCase) && this.Port == 443);
+
+        public string BindingInformationString { get; internal set; }
     }
 }

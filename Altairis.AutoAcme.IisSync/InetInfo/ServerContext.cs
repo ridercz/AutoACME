@@ -28,12 +28,26 @@ namespace Altairis.AutoAcme.IisSync.InetInfo {
                 SiteName = s.Name,
                 SiteStarted = s.State == ObjectState.Started,
                 Protocol = b.Protocol,
-                Host = b.Host,
+                Host = b.Host.ToLower(),
                 Address = b.EndPoint.Address.ToString(),
                 Port = b.EndPoint.Port,
                 CentralCertStore = b.SslFlags.HasFlag(SslFlags.CentralCertStore),
                 Sni = b.SslFlags.HasFlag(SslFlags.Sni),
+                BindingInformationString = b.BindingInformation
             }));
+        }
+
+        public void AddCcsBinding(string siteName, string hostName, bool requireSni) {
+            if (siteName == null) throw new ArgumentNullException(nameof(siteName));
+            if (string.IsNullOrWhiteSpace(siteName)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(siteName));
+            if (hostName == null) throw new ArgumentNullException(nameof(hostName));
+            if (string.IsNullOrWhiteSpace(hostName)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(hostName));
+
+            var site = mgr.Sites[siteName];
+            var sslFlags = SslFlags.CentralCertStore;
+            if (requireSni) sslFlags |= SslFlags.Sni;
+            site.Bindings.Add($"*:443:{hostName}", null, null, sslFlags);
+            mgr.CommitChanges();
         }
 
         // IDisposable implementation
