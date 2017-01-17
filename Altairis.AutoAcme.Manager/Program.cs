@@ -112,7 +112,7 @@ namespace Altairis.AutoAcme.Manager {
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
             verboseMode = verbose;
-            LoadConfig(cfgFileName);
+            if (cfgStore == null) LoadConfig(cfgFileName);
             hostName = hostName.Trim().ToLower();
 
             // Check if there already is host with this name
@@ -170,7 +170,7 @@ namespace Altairis.AutoAcme.Manager {
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
             verboseMode = verbose;
-            LoadConfig(cfgFileName);
+            if (cfgStore == null) LoadConfig(cfgFileName);
             hostName = hostName.Trim().ToLower();
 
             // Check if there is host with this name
@@ -216,7 +216,7 @@ namespace Altairis.AutoAcme.Manager {
 
             verboseMode = verbose;
             if (columnSeparator.Equals("TAB", StringComparison.OrdinalIgnoreCase)) columnSeparator = "\t";
-            LoadConfig(cfgFileName);
+            if (cfgStore == null) LoadConfig(cfgFileName);
 
             // List hosts
             Console.Write("Getting hosts...");
@@ -264,7 +264,7 @@ namespace Altairis.AutoAcme.Manager {
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
             verboseMode = verbose;
-            LoadConfig(cfgFileName);
+            if (cfgStore == null) LoadConfig(cfgFileName);
 
             // Get old expired hosts
             Console.Write($"Loading hosts expired at least {cfgStore.PurgeDaysAfterExpiration} days ago...");
@@ -316,7 +316,7 @@ namespace Altairis.AutoAcme.Manager {
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
             verboseMode = verbose;
-            LoadConfig(cfgFileName);
+            if (cfgStore == null) LoadConfig(cfgFileName);
 
             // Get hosts expiring in near future
             Console.Write($"Loading hosts expiring in {cfgStore.RenewDaysBeforeExpiration} days...");
