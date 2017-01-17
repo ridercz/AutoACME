@@ -6,6 +6,7 @@ using Newtonsoft.Json;
 
 namespace Altairis.AutoAcme.Configuration {
     public class Store {
+        private string json;
 
         public string EmailAddress { get; set; } = "example@example.com";
 
@@ -31,9 +32,12 @@ namespace Altairis.AutoAcme.Configuration {
 
         // Methods
 
-        public void Save(string fileName) {
+        public void Save(string fileName, bool saveWhenNotChanged = false) {
             if (fileName == null) throw new ArgumentNullException(nameof(fileName));
             if (string.IsNullOrWhiteSpace(fileName)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(fileName));
+
+            var newJson = JsonConvert.SerializeObject(this, Formatting.Indented);
+            if (!saveWhenNotChanged && this.json.Equals(newJson, StringComparison.Ordinal)) return;
 
             // Save old version of configuration file -- on best effort basis
             if (this.AutoSaveConfigBackup && File.Exists(fileName)) {
@@ -46,16 +50,19 @@ namespace Altairis.AutoAcme.Configuration {
 #pragma warning restore RECS0022 // A catch clause that catches System.Exception and has an empty body
             }
 
-            var json = JsonConvert.SerializeObject(this, Formatting.Indented);
-            File.WriteAllText(fileName, json);
+            // Save new version
+            File.WriteAllText(fileName, newJson);
+            this.json = newJson;
         }
 
         public static Store Load(string fileName) {
             if (fileName == null) throw new ArgumentNullException(nameof(fileName));
             if (string.IsNullOrWhiteSpace(fileName)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(fileName));
 
-            var json = File.ReadAllText(fileName);
-            return JsonConvert.DeserializeObject<Store>(json);
+            var jsonFromFile = File.ReadAllText(fileName);
+            var store = JsonConvert.DeserializeObject<Store>(jsonFromFile);
+            store.json = jsonFromFile;
+            return store;
         }
 
     }
