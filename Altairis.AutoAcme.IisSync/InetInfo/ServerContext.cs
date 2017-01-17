@@ -8,12 +8,13 @@ using Microsoft.Web.Administration;
 namespace Altairis.AutoAcme.IisSync.InetInfo {
     class ServerContext : IDisposable {
         private static readonly string[] LOCALHOST_NAMES = { "localhost", ".", "(local)" };
+        private static readonly string[] PROTOCOL_NAMES = { "http", "https" };
         private ServerManager mgr;
 
         public ServerContext() : this(serverName: null) { }
 
         public ServerContext(string serverName) {
-            if (string.IsNullOrWhiteSpace(serverName) || LOCALHOST_NAMES.Any(x => x.Equals(serverName, StringComparison.OrdinalIgnoreCase)) {
+            if (string.IsNullOrWhiteSpace(serverName) || LOCALHOST_NAMES.Any(x => x.Equals(serverName, StringComparison.OrdinalIgnoreCase))) {
                 this.mgr = new ServerManager();
             }
             else {
@@ -22,13 +23,16 @@ namespace Altairis.AutoAcme.IisSync.InetInfo {
         }
 
         public IEnumerable<BindingInfo> GetBindings() {
-            return mgr.Sites.SelectMany(s => s.Bindings.Select(b => new BindingInfo {
+            return mgr.Sites.SelectMany(s => s.Bindings.Where(b => PROTOCOL_NAMES.Any(n => n.Equals(b.Protocol, StringComparison.OrdinalIgnoreCase))).Select(b => new BindingInfo {
                 SiteId = s.Id,
                 SiteName = s.Name,
-                SiteState = s.State,
-                BindingInformation = b.BindingInformation,
+                SiteStarted = s.State == ObjectState.Started,
                 Protocol = b.Protocol,
-                HostName = b.Host
+                Host = b.Host,
+                Address = b.EndPoint.Address.ToString(),
+                Port = b.EndPoint.Port,
+                CentralCertStore = b.SslFlags.HasFlag(SslFlags.CentralCertStore),
+                Sni = b.SslFlags.HasFlag(SslFlags.Sni),
             }));
         }
 

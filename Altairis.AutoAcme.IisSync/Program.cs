@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Altairis.AutoAcme.Configuration;
+using Altairis.AutoAcme.IisSync.InetInfo;
 using NConsoler;
 
 namespace Altairis.AutoAcme.IisSync {
@@ -49,13 +50,58 @@ namespace Altairis.AutoAcme.IisSync {
 
         [Action("List IIS site bindings.")]
         public static void List(
+            [Optional(null, "f", Description = "Save to file")] string fileName,
             [Optional(false, "xh", Description = "Do not list column headers")] bool skipHeaders,
             [Optional("TAB", "cs", Description = "Column separator")] string columnSeparator,
             [Optional("localhost", "s", Description = "IIS server name")] string serverName,
-            [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
-            throw new NotImplementedException();
+            verboseMode = verbose;
+            if (columnSeparator.Equals("TAB", StringComparison.OrdinalIgnoreCase)) columnSeparator = "\t";
+
+            try {
+                Console.Write("Getting bindings...");
+                int count = 0;
+                var sb = new StringBuilder();
+                if (!skipHeaders) sb.AppendLine(string.Join(columnSeparator,
+                    "Site ID",
+                    "Site Name",
+                    "Site Started",
+                    "Protocol",
+                    "Host",
+                    "Address",
+                    "Port",
+                    "SNI",
+                    "CCS"));
+                using (var sc = new ServerContext(serverName)) {
+                    foreach (var b in sc.GetBindings()) {
+                        sb.AppendLine(string.Join(columnSeparator,
+                            b.SiteId,
+                            b.SiteName,
+                            b.SiteStarted,
+                            b.Protocol,
+                            b.Host,
+                            b.Address,
+                            b.Port,
+                            b.Sni,
+                            b.CentralCertStore));
+                        count++;
+                    }
+                }
+                Console.WriteLine("OK");
+
+                if (string.IsNullOrWhiteSpace(fileName)) {
+                    Console.WriteLine(sb);
+                }
+                else {
+                    Console.Write($"Writing to file '{fileName}'...");
+                    File.WriteAllText(fileName, sb.ToString());
+                    Console.WriteLine("OK");
+                }
+            }
+            catch (Exception ex) {
+                CrashExit(ex);
+            }
         }
 
         // Helper methods
