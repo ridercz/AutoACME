@@ -34,6 +34,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altairis.AutoAcme.Core", "A
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altairis.AutoAcme.IisSync", "Altairis.AutoAcme.IisSync\Altairis.AutoAcme.IisSync.csproj", "{BFFF1EF1-1821-4C7A-8C3C-D1CFFB2B7B2C}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Deploy", "Deploy", "{8FDF4182-5A6C-4BF5-8ECA-206A8655DFC9}"
+	ProjectSection(SolutionItems) = preProject
+		Deploy\package.cmd = Deploy\package.cmd
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
