@@ -88,7 +88,7 @@ namespace Altairis.AutoAcme.IisSync {
                         count++;
                     }
                 }
-                Console.WriteLine("OK");
+                Console.WriteLine($"OK, {count} bindings");
 
                 if (string.IsNullOrWhiteSpace(fileName)) {
                     Console.WriteLine(sb);
