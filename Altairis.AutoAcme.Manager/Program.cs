@@ -259,7 +259,7 @@ namespace Altairis.AutoAcme.Manager {
 
         [Action("Purges stale (unrenewed) hosts and keyfiles from management.")]
         public static void Purge(
-            [Optional(false, "wi", Description = "What if - only show certs to be purged")] bool whatIf,
+            [Optional(false, "wi", Description = "What if - only show hosts to be purged")] bool whatIf,
             [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
@@ -311,7 +311,7 @@ namespace Altairis.AutoAcme.Manager {
 
         [Action("Renews certificates expiring in near future.")]
         public static void Renew(
-            [Optional(false, "wi", Description = "What if - only show certs to be renewed")] bool whatIf,
+            [Optional(false, "wi", Description = "What if - only show hosts to be renewed")] bool whatIf,
             [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
@@ -393,8 +393,8 @@ namespace Altairis.AutoAcme.Manager {
         }
 
         [Action("Combines 'renew' and 'purge'.")]
-        public static void Process(
-            [Optional(false, "wi", Description = "What if - only show certs to be renewed")] bool whatIf,
+        public static void Maintenance(
+            [Optional(false, "wi", Description = "What if - only show hosts to be purged or renewed")] bool whatIf,
             [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
