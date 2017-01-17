@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Text;
 using Altairis.AutoAcme.Configuration;
 using Altairis.AutoAcme.Core;
 using Certes.Acme;
@@ -206,6 +207,7 @@ namespace Altairis.AutoAcme.Manager {
 
         [Action("Lists all host and certificate information.")]
         public static void List(
+            [Optional(null, "f", Description = "Save to file")] string fileName,
             [Optional(false, "xh", Description = "Do not list column headers")] bool skipHeaders,
             [Optional("TAB", "cs", Description = "Column separator")] string columnSeparator,
             [Optional("o", "df", Description = "Date format string")] string dateFormat,
@@ -216,40 +218,56 @@ namespace Altairis.AutoAcme.Manager {
             if (columnSeparator.Equals("TAB", StringComparison.OrdinalIgnoreCase)) columnSeparator = "\t";
             LoadConfig(cfgFileName);
 
-            // Print headers
-            if (!skipHeaders) Console.WriteLine(string.Join(columnSeparator,
+            // List hosts
+            Console.Write("Getting hosts...");
+            var sb = new StringBuilder();
+            int count = 0;
+            if (!skipHeaders) sb.AppendLine(string.Join(columnSeparator,
                  "Common Name",
                  "Not Before",
                  "Not After",
                  "Serial Number",
                  "Thumbprint"));
-
-            // Print items
             foreach (var item in cfgStore.Hosts) {
-                Console.WriteLine(string.Join(columnSeparator,
+                sb.AppendLine(string.Join(columnSeparator,
                     item.CommonName,
                     item.NotBefore.ToString(dateFormat),
                     item.NotAfter.ToString(dateFormat),
                     item.SerialNumber,
                     item.Thumbprint));
+                count++;
+            }
+            Console.WriteLine($"OK, {count} hosts");
+
+            // Print to console or file
+            try {
+                if (string.IsNullOrWhiteSpace(fileName)) {
+                    Console.WriteLine(sb);
+                }
+                else {
+                    Console.Write($"Writing to file '{fileName}'...");
+                    File.WriteAllText(fileName, sb.ToString());
+                    Console.WriteLine("OK");
+                }
+            }
+            catch (Exception ex) {
+                CrashExit(ex);
             }
         }
 
         [Action("Purges stale (unrenewed) hosts and keyfiles from management.")]
         public static void Purge(
-            [Optional(null, "d", "Override configuration days after expiration")] int? daysAfterExpiration,
             [Optional(false, "wi", Description = "What if - only show certs to be purged")] bool whatIf,
             [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
             verboseMode = verbose;
             LoadConfig(cfgFileName);
-            if (daysAfterExpiration == null || !daysAfterExpiration.HasValue) daysAfterExpiration = cfgStore.PurgeDaysAfterExpiration;
 
             // Get old expired hosts
-            Console.Write($"Loading hosts expired before {daysAfterExpiration} days...");
+            Console.Write($"Loading hosts expired before {cfgStore.PurgeDaysAfterExpiration} days...");
             var expiredHosts = cfgStore.Hosts
-                .Where(x => x.NotAfter <= DateTime.Today.AddDays(-daysAfterExpiration.Value))
+                .Where(x => x.NotAfter <= DateTime.Today.AddDays(-cfgStore.PurgeDaysAfterExpiration))
                 .OrderBy(x => x.NotAfter);
             if (!expiredHosts.Any()) {
                 Console.WriteLine("OK, no hosts to purge");
@@ -290,19 +308,17 @@ namespace Altairis.AutoAcme.Manager {
 
         [Action("Renews certificates expiring in near future.")]
         public static void Renew(
-            [Optional(null, "d", "Override configuration days before expiration")] int? daysBeforeExpiration,
             [Optional(false, "wi", Description = "What if - only show certs to be renewed")] bool whatIf,
             [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
             verboseMode = verbose;
             LoadConfig(cfgFileName);
-            if (daysBeforeExpiration == null || !daysBeforeExpiration.HasValue) daysBeforeExpiration = cfgStore.PurgeDaysAfterExpiration;
 
             // Get hosts expiring in near future
-            Console.Write($"Loading hosts expiring in {daysBeforeExpiration} days...");
+            Console.Write($"Loading hosts expiring in {cfgStore.RenewDaysBeforeExpiration} days...");
             var expiringHosts = cfgStore.Hosts
-                .Where(x => x.NotAfter <= DateTime.Today.AddDays(daysBeforeExpiration.Value))
+                .Where(x => x.NotAfter <= DateTime.Today.AddDays(cfgStore.RenewDaysBeforeExpiration))
                 .OrderBy(x => x.NotAfter);
             if (!expiringHosts.Any()) {
                 Console.WriteLine("OK, no hosts to renew");
@@ -372,8 +388,8 @@ namespace Altairis.AutoAcme.Manager {
             [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
-            Renew(null, whatIf, cfgFileName, verbose);
-            Purge(null, whatIf, cfgFileName, verbose);
+            Renew(whatIf, cfgFileName, verbose);
+            Purge(whatIf, cfgFileName, verbose);
         }
 
         // Helper methods
