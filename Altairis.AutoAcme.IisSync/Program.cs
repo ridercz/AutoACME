@@ -152,6 +152,44 @@ namespace Altairis.AutoAcme.IisSync {
             }
         }
 
+        [Action("Adds HTTPS CCS binding for site with HTTP one for given host name")]
+        public static void AddCcsBinding(
+            [Required(Description = "Host name")] string hostName,
+            [Optional(false, "sni", Description = "Require SNI for newly created binding")] bool requireSni,
+            [Optional("localhost", "s", Description = "IIS server name")] string serverName,
+            [Optional(false, Description = "Show verbose error messages")] bool verbose) {
+
+            verboseMode = verbose;
+            hostName = hostName.Trim().ToLower();
+
+            using (var sc = new ServerContext(serverName)) {
+                try {
+                    Trace.Write($"Getting bindings from {hostName}...");
+                    var bindings = sc.GetBindings().ToArray();
+                    Trace.WriteLine("OK");
+
+                    Trace.Write($"Checking for already existing HTTPS binding for {hostName}...");
+                    var exists = bindings.Any(x => x.Host.Equals(hostName, StringComparison.OrdinalIgnoreCase) && x.Protocol.Equals("https", StringComparison.OrdinalIgnoreCase));
+                    if (exists) CrashExit("Binding already exists");
+                    Trace.WriteLine("OK");
+
+                    Trace.Write("Getting site...");
+                    var site = bindings.FirstOrDefault(x => x.Host.Equals(hostName, StringComparison.OrdinalIgnoreCase) && x.Protocol.Equals("http", StringComparison.OrdinalIgnoreCase));
+                    if (site == null) CrashExit("HTTP binding not found");
+                    Trace.WriteLine($"OK, found site '{site.SiteName}', ID {site.SiteId}");
+
+                    Trace.Write("Adding new binding...");
+                    sc.AddCcsBinding(site.SiteName, hostName, requireSni);
+                    Trace.WriteLine("OK");
+
+                }
+                catch (Exception ex) {
+                    CrashExit(ex);
+                }
+            }
+
+        }
+
         [Action("List IIS site bindings.")]
         public static void List(
             [Optional(null, "f", Description = "Save to file")] string fileName,
