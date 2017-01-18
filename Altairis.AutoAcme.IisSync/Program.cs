@@ -286,8 +286,9 @@ namespace Altairis.AutoAcme.IisSync {
         }
 
         private static void LoadConfig(string cfgFileName) {
-            if (cfgFileName == null) throw new ArgumentNullException(nameof(cfgFileName));
-            if (string.IsNullOrWhiteSpace(cfgFileName)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(cfgFileName));
+            if (string.IsNullOrWhiteSpace(cfgFileName)) {
+                cfgFileName = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), DEFAULT_CONFIG_NAME);
+            }
 
             try {
                 Trace.Write($"Reading configuration from '{cfgFileName}'...");
@@ -300,8 +301,9 @@ namespace Altairis.AutoAcme.IisSync {
         }
 
         private static void SaveConfig(string cfgFileName) {
-            if (cfgFileName == null) throw new ArgumentNullException(nameof(cfgFileName));
-            if (string.IsNullOrWhiteSpace(cfgFileName)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(cfgFileName));
+            if (string.IsNullOrWhiteSpace(cfgFileName)) {
+                cfgFileName = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), DEFAULT_CONFIG_NAME);
+            }
 
             try {
                 Trace.Write($"Saving configuration to '{cfgFileName}'...");

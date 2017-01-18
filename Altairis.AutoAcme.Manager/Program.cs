@@ -33,7 +33,7 @@ namespace Altairis.AutoAcme.Manager {
         [Action("Initializes configuration file with default values.")]
         public static void InitCfg(
             [Optional(false, "d", Description = "Don't ask, use default values")] bool useDefaults,
-            [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string cfgFileName,
+            [Optional(null, "cfg", Description = "Custom configuration file name")] string cfgFileName,
             [Optional(false, "y", Description = "Overwrite existing file")] bool overwrite,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
@@ -112,7 +112,7 @@ namespace Altairis.AutoAcme.Manager {
         [Action("Add new host to manage.")]
         public static void AddHost(
             [Required(Description = "Host name")] string hostName,
-            [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string cfgFileName,
+            [Optional(null, "cfg", Description = "Custom configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
             verboseMode = verbose;
@@ -172,7 +172,7 @@ namespace Altairis.AutoAcme.Manager {
         [Action("Deletes host and keyfile from management.")]
         public static void DelHost(
             [Required(Description = "Host name")] string hostName,
-            [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string cfgFileName,
+            [Optional(null, "cfg", Description = "Custom configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
             verboseMode = verbose;
@@ -217,7 +217,7 @@ namespace Altairis.AutoAcme.Manager {
             [Optional(false, "xh", Description = "Do not list column headers")] bool skipHeaders,
             [Optional("TAB", "cs", Description = "Column separator")] string columnSeparator,
             [Optional("o", "df", Description = "Date format string")] string dateFormat,
-            [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string cfgFileName,
+            [Optional(null, "cfg", Description = "Custom configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
             verboseMode = verbose;
@@ -266,7 +266,7 @@ namespace Altairis.AutoAcme.Manager {
         [Action("Purges stale (unrenewed) hosts and keyfiles from management.")]
         public static void Purge(
             [Optional(false, "wi", Description = "What if - only show hosts to be purged")] bool whatIf,
-            [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string cfgFileName,
+            [Optional(null, "cfg", Description = "Custom configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
             verboseMode = verbose;
@@ -324,7 +324,7 @@ namespace Altairis.AutoAcme.Manager {
         [Action("Renews certificates expiring in near future.")]
         public static void Renew(
             [Optional(false, "wi", Description = "What if - only show hosts to be renewed")] bool whatIf,
-            [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string cfgFileName,
+            [Optional(null, "cfg", Description = "Custom configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
             verboseMode = verbose;
@@ -413,7 +413,7 @@ namespace Altairis.AutoAcme.Manager {
         [Action("Combines 'renew' and 'purge'.")]
         public static void Maintenance(
             [Optional(false, "wi", Description = "What if - only show hosts to be purged or renewed")] bool whatIf,
-            [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string cfgFileName,
+            [Optional(null, "cfg", Description = "Custom configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
             Renew(whatIf, cfgFileName, verbose);
@@ -458,8 +458,9 @@ namespace Altairis.AutoAcme.Manager {
         }
 
         private static void LoadConfig(string cfgFileName) {
-            if (cfgFileName == null) throw new ArgumentNullException(nameof(cfgFileName));
-            if (string.IsNullOrWhiteSpace(cfgFileName)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(cfgFileName));
+            if (string.IsNullOrWhiteSpace(cfgFileName)) {
+                cfgFileName = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), DEFAULT_CONFIG_NAME);
+            }
 
             try {
                 Trace.Write($"Reading configuration from '{cfgFileName}'...");
@@ -472,8 +473,9 @@ namespace Altairis.AutoAcme.Manager {
         }
 
         private static void SaveConfig(string cfgFileName) {
-            if (cfgFileName == null) throw new ArgumentNullException(nameof(cfgFileName));
-            if (string.IsNullOrWhiteSpace(cfgFileName)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(cfgFileName));
+            if (string.IsNullOrWhiteSpace(cfgFileName)) {
+                cfgFileName = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), DEFAULT_CONFIG_NAME);
+            }
 
             try {
                 Trace.Write($"Saving configuration to '{cfgFileName}'...");
