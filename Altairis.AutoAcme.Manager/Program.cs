@@ -47,41 +47,41 @@ namespace Altairis.AutoAcme.Manager {
 
             if (!useDefaults) {
                 // Ask some questions
-                Trace.WriteLine("-------------------------------------------------------------------------------");
-                Trace.WriteLine("         Please answer the following questions to build configuration:         ");
-                Trace.WriteLine("-------------------------------------------------------------------------------");
+                Console.WriteLine("-------------------------------------------------------------------------------");
+                Console.WriteLine("         Please answer the following questions to build configuration:         ");
+                Console.WriteLine("-------------------------------------------------------------------------------");
 
-                Trace.WriteLine("Let's Encrypt needs your e-mail address, ie. webmaster@example.com. This email");
-                Trace.WriteLine("would be used for critical communication, such as certificate expiration when");
-                Trace.WriteLine("no renewed certificate has been issued etc. Type your e-mail and press ENTER.");
-                Trace.Write("> ");
+                Console.WriteLine("Let's Encrypt needs your e-mail address, ie. webmaster@example.com. This email");
+                Console.WriteLine("would be used for critical communication, such as certificate expiration when");
+                Console.WriteLine("no renewed certificate has been issued etc. Type your e-mail and press ENTER.");
+                Console.Write("> ");
                 cfgStore.EmailAddress = Console.ReadLine();
 
-                Trace.WriteLine("Enter the folder for challenge verification files. Default path is:");
-                Trace.WriteLine(cfgStore.ChallengeFolder);
-                Trace.WriteLine("To use it, just press ENTER.");
-                Trace.Write("> ");
+                Console.WriteLine("Enter the folder for challenge verification files. Default path is:");
+                Console.WriteLine(cfgStore.ChallengeFolder);
+                Console.WriteLine("To use it, just press ENTER.");
+                Console.Write("> ");
                 var challengePath = Console.ReadLine();
                 if (!string.IsNullOrWhiteSpace(challengePath)) cfgStore.ChallengeFolder = challengePath;
 
-                Trace.WriteLine("Enter the folder where PFX files are to be stored. Default path is:");
-                Trace.WriteLine(cfgStore.PfxFolder);
-                Trace.WriteLine("To use it, just press ENTER.");
-                Trace.Write("> ");
+                Console.WriteLine("Enter the folder where PFX files are to be stored. Default path is:");
+                Console.WriteLine(cfgStore.PfxFolder);
+                Console.WriteLine("To use it, just press ENTER.");
+                Console.Write("> ");
                 var pfxPath = Console.ReadLine();
                 if (!string.IsNullOrWhiteSpace(pfxPath)) cfgStore.PfxFolder = pfxPath;
 
-                Trace.WriteLine("Enter the password used for encryption of PFX files. The password provides some");
-                Trace.WriteLine("additional protection, but should not be too relied upon. It will be stored in");
-                Trace.WriteLine("the configuration file in plain text.");
-                Trace.Write("> ");
+                Console.WriteLine("Enter the password used for encryption of PFX files. The password provides some");
+                Console.WriteLine("additional protection, but should not be too relied upon. It will be stored in");
+                Console.WriteLine("the configuration file in plain text.");
+                Console.Write("> ");
                 cfgStore.PfxPassword = Console.ReadLine();
 
-                Trace.WriteLine("Enter URL of the ACME server you are going to use:");
-                Trace.WriteLine(" - To use Let's Encrypt production server, just press ENTER");
-                Trace.WriteLine(" - To use Let's Encrypt staging server, type 'staging' and press ENTER");
-                Trace.WriteLine(" - To use other server, type its URL and press ENTER");
-                Trace.Write("> ");
+                Console.WriteLine("Enter URL of the ACME server you are going to use:");
+                Console.WriteLine(" - To use Let's Encrypt production server, just press ENTER");
+                Console.WriteLine(" - To use Let's Encrypt staging server, type 'staging' and press ENTER");
+                Console.WriteLine(" - To use other server, type its URL and press ENTER");
+                Console.Write("> ");
                 var acmeServer = Console.ReadLine();
                 if (string.IsNullOrWhiteSpace(acmeServer)) {
                     cfgStore.ServerUri = WellKnownServers.LetsEncrypt;
@@ -92,7 +92,7 @@ namespace Altairis.AutoAcme.Manager {
                 else {
                     cfgStore.ServerUri = new Uri(acmeServer);
                 }
-                Trace.WriteLine(string.Empty);
+                Console.WriteLine(string.Empty);
             }
 
             // Save to file
@@ -101,11 +101,11 @@ namespace Altairis.AutoAcme.Manager {
             // Ensure folders are created
             EnsureFolderExists(cfgStore.ChallengeFolder);
             EnsureFolderExists(cfgStore.PfxFolder);
-            Trace.WriteLine(string.Empty);
+            Console.WriteLine(string.Empty);
 
             // Display farewell message
-            Trace.WriteLine("There are some additional options you can set in configuration file directly.");
-            Trace.WriteLine("See documentation at www.autoacme.net for reference.");
+            Console.WriteLine("There are some additional options you can set in configuration file directly.");
+            Console.WriteLine("See documentation at www.autoacme.net for reference.");
         }
 
         [Action("Add new host to manage.")]
