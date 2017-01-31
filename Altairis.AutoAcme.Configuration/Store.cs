@@ -37,7 +37,7 @@ namespace Altairis.AutoAcme.Configuration {
             if (string.IsNullOrWhiteSpace(fileName)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(fileName));
 
             var newJson = JsonConvert.SerializeObject(this, Formatting.Indented);
-            if (!saveWhenNotChanged && this.json.Equals(newJson, StringComparison.Ordinal)) return;
+            if (!saveWhenNotChanged && newJson.Equals(this.json, StringComparison.Ordinal)) return;
 
             // Save old version of configuration file -- on best effort basis
             if (this.AutoSaveConfigBackup && File.Exists(fileName)) {

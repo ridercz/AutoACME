@@ -43,7 +43,7 @@ namespace Altairis.AutoAcme.Manager {
             if (!overwrite && File.Exists(cfgFileName)) CrashExit("File already exists. Use /y to overwrite.");
 
             // Create default configuration
-            var defaultConfig = new Configuration.Store();
+            cfgStore = new Configuration.Store();
 
             if (!useDefaults) {
                 // Ask some questions
@@ -55,27 +55,27 @@ namespace Altairis.AutoAcme.Manager {
                 Trace.WriteLine("would be used for critical communication, such as certificate expiration when");
                 Trace.WriteLine("no renewed certificate has been issued etc. Type your e-mail and press ENTER.");
                 Trace.Write("> ");
-                defaultConfig.EmailAddress = Console.ReadLine();
+                cfgStore.EmailAddress = Console.ReadLine();
 
                 Trace.WriteLine("Enter the folder for challenge verification files. Default path is:");
-                Trace.WriteLine(defaultConfig.ChallengeFolder);
+                Trace.WriteLine(cfgStore.ChallengeFolder);
                 Trace.WriteLine("To use it, just press ENTER.");
                 Trace.Write("> ");
                 var challengePath = Console.ReadLine();
-                if (!string.IsNullOrWhiteSpace(challengePath)) defaultConfig.ChallengeFolder = challengePath;
+                if (!string.IsNullOrWhiteSpace(challengePath)) cfgStore.ChallengeFolder = challengePath;
 
                 Trace.WriteLine("Enter the folder where PFX files are to be stored. Default path is:");
-                Trace.WriteLine(defaultConfig.PfxFolder);
+                Trace.WriteLine(cfgStore.PfxFolder);
                 Trace.WriteLine("To use it, just press ENTER.");
                 Trace.Write("> ");
                 var pfxPath = Console.ReadLine();
-                if (!string.IsNullOrWhiteSpace(pfxPath)) defaultConfig.PfxFolder = pfxPath;
+                if (!string.IsNullOrWhiteSpace(pfxPath)) cfgStore.PfxFolder = pfxPath;
 
                 Trace.WriteLine("Enter the password used for encryption of PFX files. The password provides some");
                 Trace.WriteLine("additional protection, but should not be too relied upon. It will be stored in");
                 Trace.WriteLine("the configuration file in plain text.");
                 Trace.Write("> ");
-                defaultConfig.PfxPassword = Console.ReadLine();
+                cfgStore.PfxPassword = Console.ReadLine();
 
                 Trace.WriteLine("Enter URL of the ACME server you are going to use:");
                 Trace.WriteLine(" - To use Let's Encrypt production server, just press ENTER");
@@ -84,27 +84,26 @@ namespace Altairis.AutoAcme.Manager {
                 Trace.Write("> ");
                 var acmeServer = Console.ReadLine();
                 if (string.IsNullOrWhiteSpace(acmeServer)) {
-                    defaultConfig.ServerUri = WellKnownServers.LetsEncrypt;
+                    cfgStore.ServerUri = WellKnownServers.LetsEncrypt;
                 }
                 else if (acmeServer.Trim().Equals("staging", StringComparison.OrdinalIgnoreCase)) {
-                    defaultConfig.ServerUri = WellKnownServers.LetsEncryptStaging;
+                    cfgStore.ServerUri = WellKnownServers.LetsEncryptStaging;
                 }
                 else {
-                    defaultConfig.ServerUri = new Uri(acmeServer);
+                    cfgStore.ServerUri = new Uri(acmeServer);
                 }
                 Trace.WriteLine(string.Empty);
             }
 
             // Save to file
-            Trace.Write($"Saving to file '{cfgFileName}'...");
-            try {
-                defaultConfig.Save(cfgFileName);
-            }
-            catch (Exception ex) {
-                CrashExit(ex);
-            }
-            Trace.WriteLine("OK");
+            SaveConfig(cfgFileName);
+
+            // Ensure folders are created
+            EnsureFolderExists(cfgStore.ChallengeFolder);
+            EnsureFolderExists(cfgStore.PfxFolder);
             Trace.WriteLine(string.Empty);
+
+            // Display farewell message
             Trace.WriteLine("There are some additional options you can set in configuration file directly.");
             Trace.WriteLine("See documentation at www.autoacme.net for reference.");
         }
@@ -449,6 +448,26 @@ namespace Altairis.AutoAcme.Manager {
             }
             catch (Exception ex) {
                 Trace.WriteLine("Warning!");
+                Trace.WriteLine(ex.Message);
+                if (verboseMode) {
+                    Trace.WriteLine(string.Empty);
+                    Trace.WriteLine(ex);
+                }
+            }
+        }
+
+        private static void EnsureFolderExists(string folderPath) {
+            if (folderPath == null) throw new ArgumentNullException(nameof(folderPath));
+            if (string.IsNullOrWhiteSpace(folderPath)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(folderPath));
+            if (Directory.Exists(folderPath)) return;
+
+            try {
+                Trace.Write($"Creating folder {folderPath}...");
+                Directory.CreateDirectory(folderPath);
+                Trace.WriteLine("OK");
+            }
+            catch (Exception ex) {
+                Trace.WriteLine("Failed!");
                 Trace.WriteLine(ex.Message);
                 if (verboseMode) {
                     Trace.WriteLine(string.Empty);
