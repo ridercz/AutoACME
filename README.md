@@ -9,6 +9,9 @@ Its features include:
 * Allows use of certificates outside of IIS and web
 * Supports web farms
 
+## How to get it
+[Download the latest release](https://github.com/ridercz/AutoACME/releases/latest) from GitHub.
+
 ## Documentation
 * [Getting started with AutoAcme](https://github.com/ridercz/AutoACME/wiki/Getting-started-with-AutoAcme)
 * [Documentation homepage](https://github.com/ridercz/AutoACME/wiki)
