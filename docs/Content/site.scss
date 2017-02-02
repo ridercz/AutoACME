@@ -1,0 +1,131 @@
+﻿$Red: #aa0000;
+$Black: #000;
+$White: #fff;
+
+body {
+    background-color: darken($White, 50);
+    color: $Black;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 1em;
+    background-image: url(Images/background_road.jpg);
+    background-position: center center;
+    background-attachment: fixed;
+    background-size: cover;
+    background-repeat: no-repeat;
+    margin: 0;
+    padding: 0;
+}
+
+a {
+    &:link {
+        color: $Red;
+    }
+
+    &:visited {
+        color: darken($Red, 10);
+    }
+
+    &:hover {
+        color: lighten($Red, 10);
+    }
+}
+
+@mixin white-links() {
+    a {
+        text-decoration: none;
+
+        &:link {
+            color: $White;
+        }
+
+        &:visited {
+            color: darken($White, 15);
+        }
+
+        &:hover {
+            color: lighten($Red, 10);
+            text-decoration: underline;
+        }
+    }
+}
+
+
+header {
+    text-align: center;
+    padding: 75px 0;
+}
+
+nav {
+    @include white-links();
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box;
+    padding: 1.5ex 0;
+    background-color: rgba(#000, .75);
+    color: #ccc;
+    font-size: 140%;
+    text-align: center;
+    max-width: 1100px;
+    margin: 0 auto 1ex auto;
+
+    ul {
+        margin: 0;
+        padding: 0;
+        list-style-type: none;
+
+        li {
+            margin: 0;
+            padding: 0;
+            list-style-type: none;
+            display: inline;
+
+            &:nth-child(n+2):before {
+                content: '| ';
+            }
+        }
+    }
+}
+
+main {
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box;
+    background-color: rgba(#fff, .85);
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 3ex;
+}
+
+footer {
+    @include white-links();
+    margin: 1ex auto 50px auto;
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box;
+    max-width: 1100px;
+    background-color: rgba(#000, .25);
+    color: #fff;
+    text-align: center;
+    font-size: 80%;
+    padding: 1ex 0;
+}
+
+h2 {
+    color: $Red;
+}
+
+abbr {
+    border-bottom: 2px dotted $Red;
+}
+
+dl {
+    dt {
+        color: $Red;
+        font-weight: bold;
+        margin-bottom: .5ex;
+    }
+
+    dd {
+        margin-bottom: 1ex;
+    }
+}

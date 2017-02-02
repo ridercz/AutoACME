@@ -39,9 +39,25 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Deploy", "Deploy", "{8FDF41
 		Deploy\package.cmd = Deploy\package.cmd
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{E23455AC-D363-40F1-B757-06878DFA8E68}"
-	ProjectSection(SolutionItems) = preProject
-		docs\index.html = docs\index.html
+Project("{E24C65DC-7377-472B-9ABA-BC803B73C61A}") = "docs", "docs\", "{8D1F3486-5DF6-4D73-B073-4A6E2CE96153}"
+	ProjectSection(WebsiteProperties) = preProject
+		TargetFrameworkMoniker = ".NETFramework,Version%3Dv4.0"
+		Debug.AspNetCompiler.VirtualPath = "/localhost_15697"
+		Debug.AspNetCompiler.PhysicalPath = "docs\"
+		Debug.AspNetCompiler.TargetPath = "PrecompiledWeb\localhost_15697\"
+		Debug.AspNetCompiler.Updateable = "true"
+		Debug.AspNetCompiler.ForceOverwrite = "true"
+		Debug.AspNetCompiler.FixedNames = "false"
+		Debug.AspNetCompiler.Debug = "True"
+		Release.AspNetCompiler.VirtualPath = "/localhost_15697"
+		Release.AspNetCompiler.PhysicalPath = "docs\"
+		Release.AspNetCompiler.TargetPath = "PrecompiledWeb\localhost_15697\"
+		Release.AspNetCompiler.Updateable = "true"
+		Release.AspNetCompiler.ForceOverwrite = "true"
+		Release.AspNetCompiler.FixedNames = "false"
+		Release.AspNetCompiler.Debug = "False"
+		VWDPort = "15697"
+		SlnRelativePath = "docs\"
 	EndProjectSection
 EndProject
 Global
@@ -66,6 +82,10 @@ Global
 		{BFFF1EF1-1821-4C7A-8C3C-D1CFFB2B7B2C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BFFF1EF1-1821-4C7A-8C3C-D1CFFB2B7B2C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BFFF1EF1-1821-4C7A-8C3C-D1CFFB2B7B2C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8D1F3486-5DF6-4D73-B073-4A6E2CE96153}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8D1F3486-5DF6-4D73-B073-4A6E2CE96153}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8D1F3486-5DF6-4D73-B073-4A6E2CE96153}.Release|Any CPU.ActiveCfg = Debug|Any CPU
+		{8D1F3486-5DF6-4D73-B073-4A6E2CE96153}.Release|Any CPU.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,9 +1,67 @@
+﻿<!DOCTYPE html>
 <html>
-    <head>
-        <title>AutoACME</title>
-    </head>
-    <body>
-        <h1>AutoACME</h1>
-        <p>Site under construction.</p>
-    </body>
+<head prefix="og: http://ogp.me/ns#">
+    <title>AutoACME</title>
+    <meta charset="utf-8" />
+    <meta name="description" content="AutoACME is simple and free batch client for Let's Encrypt certificate authority, and possibly any other certificate authorities using the ACME protocol. It runs on Microsoft Windows Server 2012 and newer and Internet Information Services, platform not supported by the official client." />
+    <meta name="author" content="Michal Altair Valášek, Altairis" />
+    <meta name="msapplication-config" content="/browserconfig.xml">
+    <meta property="og:image" content="/Content/Images/AutoAcmeLogo_256.png" />
+    <meta property="og:title" content="AutoACME" />
+    <meta property="og:description" content="AutoACME is simple and free batch client for Let's Encrypt certificate authority, and possibly any other certificate authorities using the ACME protocol. It runs on Microsoft Windows Server 2012 and newer and Internet Information Services, platform not supported by the official client." />
+    <link rel="stylesheet" type="text/css" href="/Content/site.min.css" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" href="/favicon-32x32.png" sizes="32x32">
+    <link rel="icon" type="image/png" href="/favicon-16x16.png" sizes="16x16">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+    <link rel="shortcut icon" href="/favicon.ico">
+</head>
+<body>
+    <header>
+        <a href="https://github.com/ridercz/AutoACME"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/365986a132ccd6a44c23a9169022c0b5c890c387/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f7265645f6161303030302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_red_aa0000.png"></a>
+        <img src="/Content/Images/AutoAcmeLogo_256.png" width="256" height="256" alt="AutoACME logo" />
+    </header>
+    <nav>
+        <ul>
+            <li><a href="https://github.com/ridercz/AutoACME/releases/latest">Download</a></li>
+            <li><a href="https://github.com/ridercz/AutoACME/wiki/Getting-started-with-AutoAcme">Getting Started</a></li>
+            <li><a href="https://github.com/ridercz/AutoACME/issues">Issues</a></li>
+        </ul>
+    </nav>
+    <main>
+        <h2>What is AutoACME?</h2>
+        <p>AutoACME is simple and free batch client for <a href="https://www.letsencrypt.org/">Let's Encrypt</a> certificate authority, and possibly any other certificate authorities using the <abbr title="Automated Certificate Management Environment">ACME</abbr> protocol. It runs on <b>Microsoft Windows Server 2012</b> and newer and <b>Internet Information Services</b>, platform not supported by the official client.</p>
+        <p>AutoACME has the following features:</p>
+        <ul>
+            <li>Fully automated operation after initial setup</li>
+            <li>Supports unlimited number of servers and sites</li>
+            <li>Does not require any modification of web sites</li>
+            <li>Does not require administration rights</li>
+            <li>Does not interact with IIS setup during operation</li>
+            <li>Allows use of certificates outside of IIS and web</li>
+            <li>Supports web farms</li>
+        </ul>
+        <h2>FAQ</h2>
+        <dl>
+            <dt>Why you created AutoACME, when there already is <em>letsencrypt-win-simple</em> and other solutions?</dt>
+            <dd>I found <em>letsencrypt-win-simple</em> and all other soluctions cumbersome and unreliable for fully autonomous scenarios. All solutions I know about require manual intervention or modification of web sites under certain circumstances. AutoACME uses URL rewriting configured <em>outside</em> the web sites to handle verification requests. It also does not modify IIS configuration, plays nice with web farms etc. </dd>
+            <dt>What does 'Fully automated operation after initial setup' mean?</dt>
+            <dd>AutoACME can be setup in such a way that it will automatically add HTTPS capabilities to any and all web sites running on single IIS server or entire web farm. After initial configuration, everything works automatically. You only need to create regulat web site (manually or automatically) and AutoACME can take care about the rest.</dd>
+            <dt>How I can get AutoACME?</dt>
+            <dd><a href="https://github.com/ridercz/AutoACME/releases/latest">Download</a> the latest release from GitHub.</dd>
+            <dt>How I can deploy AutoACME?</dt>
+            <dd>Read the <a href="https://github.com/ridercz/AutoACME/wiki/Getting-started-with-AutoAcme">Getting Started</a> guide on project wiki.</dd>
+            <dt>Do you accept pull requests?</dt>
+            <dd>Yes I do.</dd>
+            <dt>Do you accept tips and donations?</dt>
+            <dd>Yes I happily do, you can use <a href="https://www.paypal.me/ridercz">PayPal</a> for them.</dd>
+            <dt>Why the anvil in AutoACME logo and road scenery background?</dt>
+            <dd>When I was young, I grew up on WB cartoons where the <a href="https://en.wikipedia.org/wiki/Wile_E._Coyote_and_the_Road_Runner">Wile E. Coyote chased the Road Runner</a>, using various technological means supplied by the ACME corporation. Their trademark item was a very heavy anvil. The anvil in AutoACME logo is intended to honor Mr. Coyote, who never caught the bird, but who I always supported wholeheartedly, because the bird annoyed me.</dd>
+        </dl>
+    </main>
+    <footer>
+        Copyright &copy; <a href="http://www.rider.cz/">Michal A. Valášek</a> - <a href="http://www.altairis.cz/">Altairis</a>, 2017
+    </footer>
+</body>
 </html>
