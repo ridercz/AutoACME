@@ -13,6 +13,10 @@ namespace Altairis.AutoAcme.Core {
         private AcmeClient client;
         private AcmeAccount account;
 
+        public int ChallengeVerificationRetryCount { get; set; } = 10;
+
+        public TimeSpan ChallengeVerificationWaitSeconds { get; set; } = TimeSpan.FromSeconds(5);
+
         public AcmeContext(Uri serverAddress) {
             if (serverAddress == null) throw new ArgumentNullException(nameof(serverAddress));
             this.client = new AcmeClient(serverAddress);
@@ -37,50 +41,15 @@ namespace Altairis.AutoAcme.Core {
             this.LoginAsync(email).GetAwaiter().GetResult();
         }
 
-        public async Task<CertificateRequestResult> GetCertificateAsync(string hostName, string pfxPassword, Action<string, string> challengeCallback, Action<string> cleanupCallback, int retryCount, TimeSpan retryTime) {
+        public async Task<CertificateRequestResult> GetCertificateAsync(string hostName, string pfxPassword, Action<string, string> challengeCallback, Action<string> cleanupCallback) {
             if (hostName == null) throw new ArgumentNullException(nameof(hostName));
             if (string.IsNullOrWhiteSpace(hostName)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(hostName));
             if (challengeCallback == null) throw new ArgumentNullException(nameof(challengeCallback));
             if (this.client == null) throw new ObjectDisposedException("AcmeContext");
 
-            // Create authorization request
-            Trace.Write("Creating authorization request...");
-            var ar = await this.client.NewAuthorization(new AuthorizationIdentifier {
-                Type = AuthorizationIdentifierTypes.Dns,
-                Value = hostName
-            });
-            Trace.WriteLine("OK, the following is request URI:");
-            Trace.WriteLine(ar.Location);
-
-            // Get challenge
-            Trace.Write("Getting challenge...");
-            var ch = ar.Data.Challenges.Where(x => x.Type == ChallengeTypes.Http01).First();
-            var keyAuthString = this.client.ComputeKeyAuthorization(ch);
-            Trace.WriteLine("OK, the following is challenge URI:");
-            Trace.WriteLine(ch.Uri);
-
-            // Wait for challenge callback to complete
-            challengeCallback(ch.Token, keyAuthString);
-
-            // Complete challenge
-            Trace.Write("Completing challenge...");
-            var chr = await this.client.CompleteChallenge(ch);
-            Console.WriteLine("OK");
-
-            // Wait for authorization
-            Trace.Write("Waiting for authorization..");
-            while (retryCount > 0) {
-                Trace.Write(".");
-                ar = await this.client.GetAuthorization(chr.Location);
-                if (ar.Data.Status != EntityStatus.Pending) break;
-                await Task.Delay(retryTime);
-                retryCount--;
-            }
-            if (ar.Data.Status != EntityStatus.Valid) throw new Exception($"Authorization not valid. Last known status: {ar.Data.Status}");
-            Console.WriteLine("OK");
-
-            // Clean up challenge
-            cleanupCallback(ch.Token);
+            // Get authorization
+            var authorizationResult = await GetAuthorization(hostName, challengeCallback, cleanupCallback);
+            if (authorizationResult != EntityStatus.Valid) throw new Exception($"Authorization failed with status {authorizationResult}");
 
             // Get certificate
             Trace.Write("Requesting certificate...");
@@ -103,8 +72,58 @@ namespace Altairis.AutoAcme.Core {
             };
         }
 
-        public CertificateRequestResult GetCertificate(string hostName, string pfxPassword, Action<string, string> challengeCallback, Action<string> cleanupCallback, int retryCount, TimeSpan retryTime) {
-            return this.GetCertificateAsync(hostName, pfxPassword, challengeCallback, cleanupCallback, retryCount, retryTime).GetAwaiter().GetResult();
+        public CertificateRequestResult GetCertificate(string hostName, string pfxPassword, Action<string, string> challengeCallback, Action<string> cleanupCallback) {
+            return this.GetCertificateAsync(hostName, pfxPassword, challengeCallback, cleanupCallback).GetAwaiter().GetResult();
+        }
+
+        // Helper methods
+
+        private async Task<string> GetAuthorization(string hostName, Action<string, string> challengeCallback, Action<string> cleanupCallback) {
+            // Create authorization request
+            Trace.Write("Creating authorization request...");
+            var ar = await this.client.NewAuthorization(new AuthorizationIdentifier {
+                Type = AuthorizationIdentifierTypes.Dns,
+                Value = hostName
+            });
+            Trace.WriteLine("OK, the following is request URI:");
+            Trace.WriteLine(ar.Location);
+
+            // Get challenge
+            Trace.Write("Getting challenge...");
+            var ch = ar.Data.Challenges.First(x => x.Type == ChallengeTypes.Http01);
+            var keyAuthString = this.client.ComputeKeyAuthorization(ch);
+            Trace.WriteLine("OK, the following is challenge URI:");
+            Trace.WriteLine(ch.Uri);
+
+            // Wait for challenge callback to complete
+            challengeCallback(ch.Token, keyAuthString);
+
+            // Complete challenge
+            Trace.Write("Completing challenge...");
+            var chr = await this.client.CompleteChallenge(ch);
+            Trace.WriteLine("OK");
+
+            // Wait for authorization
+            Trace.Write("Waiting for authorization..");
+            var retryCount = this.ChallengeVerificationRetryCount;
+            while (retryCount > 0) {
+                Trace.Write(".");
+                ar = await this.client.GetAuthorization(chr.Location);
+                if (ar.Data.Status != EntityStatus.Pending) break;
+                await Task.Delay(this.ChallengeVerificationWaitSeconds);
+                retryCount--;
+            }
+            // Clean up challenge
+            cleanupCallback(ch.Token);
+
+            if (ar.Data.Status == EntityStatus.Valid) {
+                Trace.WriteLine("OK");
+            }
+            else {
+                Trace.WriteLine("Failed!");
+                Trace.WriteLine($"Last known status: {ar.Data.Status}");
+            }
+            return ar.Data.Status;
         }
 
         // IDisposable implementation

@@ -78,6 +78,9 @@ namespace Altairis.AutoAcme.IisSync {
                 Trace.WriteLine($"OK");
 
                 using (var ac = new AcmeContext(cfgStore.ServerUri)) {
+                    ac.ChallengeVerificationRetryCount = cfgStore.ChallengeVerificationRetryCount;
+                    ac.ChallengeVerificationWaitSeconds = TimeSpan.FromSeconds(cfgStore.ChallengeVerificationWaitSeconds);
+
                     // Login to Let's Encrypt service
                     ac.Login(cfgStore.EmailAddress);
 
@@ -97,9 +100,7 @@ namespace Altairis.AutoAcme.IisSync {
                                 hostName: binding.Host,
                                 pfxPassword: cfgStore.PfxPassword,
                                 challengeCallback: CreateChallenge,
-                                cleanupCallback: CleanupChallenge,
-                                retryCount: cfgStore.ChallengeVerificationRetryCount,
-                                retryTime: TimeSpan.FromSeconds(cfgStore.ChallengeVerificationWaitSeconds));
+                                cleanupCallback: CleanupChallenge);
                         }
                         catch (Exception ex) {
                             Trace.WriteLine($"Process failed: {ex.Message}");

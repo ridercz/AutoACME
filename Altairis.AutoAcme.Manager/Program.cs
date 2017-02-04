@@ -126,14 +126,14 @@ namespace Altairis.AutoAcme.Manager {
             // Request certificate
             CertificateRequestResult result;
             using (var ac = new AcmeContext(cfgStore.ServerUri)) {
+                ac.ChallengeVerificationRetryCount = cfgStore.ChallengeVerificationRetryCount;
+                ac.ChallengeVerificationWaitSeconds = TimeSpan.FromSeconds(cfgStore.ChallengeVerificationWaitSeconds);
                 ac.Login(cfgStore.EmailAddress);
                 result = ac.GetCertificate(
                     hostName: hostName,
                     pfxPassword: cfgStore.PfxPassword,
                     challengeCallback: CreateChallenge,
-                    cleanupCallback: CleanupChallenge,
-                    retryCount: cfgStore.ChallengeVerificationRetryCount,
-                    retryTime: TimeSpan.FromSeconds(cfgStore.ChallengeVerificationWaitSeconds));
+                    cleanupCallback: CleanupChallenge);
             }
 
             // Display certificate into
@@ -358,14 +358,14 @@ namespace Altairis.AutoAcme.Manager {
                 CertificateRequestResult result = null;
                 try {
                     using (var ac = new AcmeContext(cfgStore.ServerUri)) {
+                        ac.ChallengeVerificationRetryCount = cfgStore.ChallengeVerificationRetryCount;
+                        ac.ChallengeVerificationWaitSeconds = TimeSpan.FromSeconds(cfgStore.ChallengeVerificationWaitSeconds);
                         ac.Login(cfgStore.EmailAddress);
                         result = ac.GetCertificate(
                             hostName: item.CommonName,
                             pfxPassword: cfgStore.PfxPassword,
                             challengeCallback: CreateChallenge,
-                            cleanupCallback: CleanupChallenge,
-                            retryCount: cfgStore.ChallengeVerificationRetryCount,
-                            retryTime: TimeSpan.FromSeconds(cfgStore.ChallengeVerificationWaitSeconds));
+                            cleanupCallback: CleanupChallenge);
                     }
                 }
                 catch (Exception ex) {
