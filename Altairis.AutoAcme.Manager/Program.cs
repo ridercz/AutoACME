@@ -136,14 +136,14 @@ namespace Altairis.AutoAcme.Manager {
                     cleanupCallback: CleanupChallenge);
             }
 
-            // Display certificate into
+            // Display certificate info
             Trace.Indent();
             Trace.WriteLine("Certificate information:");
             Trace.WriteLine($"Issuer:        {result.Certificate.Issuer}");
             Trace.WriteLine($"Subject:       {result.Certificate.Subject}");
             Trace.WriteLine($"Serial number: {result.Certificate.SerialNumber}");
             Trace.WriteLine($"Not before:    {result.Certificate.NotBefore:o}");
-            Trace.WriteLine($"Not before:    {result.Certificate.NotAfter:o}");
+            Trace.WriteLine($"Not after:     {result.Certificate.NotAfter:o}");
             Trace.WriteLine($"Thumbprint:    {result.Certificate.Thumbprint}");
             Trace.Unindent();
 
@@ -376,14 +376,14 @@ namespace Altairis.AutoAcme.Manager {
                     }
                 }
                 if (result != null) {
-                    // Display certificate into
+                    // Display certificate info
                     Trace.Indent();
                     Trace.WriteLine("Certificate information:");
                     Trace.WriteLine($"Issuer:        {result.Certificate.Issuer}");
                     Trace.WriteLine($"Subject:       {result.Certificate.Subject}");
                     Trace.WriteLine($"Serial number: {result.Certificate.SerialNumber}");
                     Trace.WriteLine($"Not before:    {result.Certificate.NotBefore:o}");
-                    Trace.WriteLine($"Not before:    {result.Certificate.NotAfter:o}");
+                    Trace.WriteLine($"Not after:     {result.Certificate.NotAfter:o}");
                     Trace.WriteLine($"Thumbprint:    {result.Certificate.Thumbprint}");
                     Trace.Unindent();
 
