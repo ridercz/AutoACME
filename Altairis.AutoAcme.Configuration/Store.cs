@@ -22,7 +22,7 @@ namespace Altairis.AutoAcme.Configuration {
 
         public int ChallengeVerificationWaitSeconds { get; set; } = 5;
 
-        public int RenewDaysBeforeExpiration { get; set; } = 14;
+        public int RenewDaysBeforeExpiration { get; set; } = 30;
 
         public int PurgeDaysAfterExpiration { get; set; } = 30;
 
