@@ -113,9 +113,8 @@ namespace Altairis.AutoAcme.Core {
                 await Task.Delay(this.ChallengeVerificationWaitSeconds);
                 retryCount--;
             }
-            // Clean up challenge
-            cleanupCallback(ch.Token);
 
+            // Check authorization status
             if (ar.Data.Status == EntityStatus.Valid) {
                 Trace.WriteLine("OK");
             }
@@ -123,6 +122,10 @@ namespace Altairis.AutoAcme.Core {
                 Trace.WriteLine("Failed!");
                 Trace.WriteLine($"Last known status: {ar.Data.Status}");
             }
+
+            // Clean up challenge
+            cleanupCallback(ch.Token);
+
             return ar.Data.Status;
         }
 
