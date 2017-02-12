@@ -29,6 +29,33 @@ namespace Altairis.AutoAcme.Manager {
         }
 
         // Commands
+        [Action("Creates web.config file in configured challenge folder.")]
+        public static void InitWeb(
+        [Optional(null, "cfg", Description = "Custom configuration file name")] string cfgFileName,
+        [Optional(false, "y", Description = "Overwrite existing file")] bool overwrite,
+        [Optional(false, Description = "Show verbose error messages")] bool verbose) {
+
+            verboseMode = verbose;
+            if (cfgStore == null) LoadConfig(cfgFileName);
+
+            // Check for current web.config file
+            var webConfigName = Path.Combine(cfgStore.ChallengeFolder, "web.config");
+            if (!overwrite) {
+                Console.Write($"Checking current {webConfigName}...");
+                if (File.Exists(webConfigName)) CrashExit("File already exists. Use /y to overwrite.");
+                Console.WriteLine("OK");
+            }
+
+            // Write value from resources to web.config file
+            try {
+                Console.Write($"Saving {webConfigName}...");
+                File.WriteAllText(webConfigName, Properties.Resources.WebConfig);
+                Console.WriteLine("OK");
+            }
+            catch (Exception ex) {
+                CrashExit(ex);
+            }
+        }
 
         [Action("Initializes configuration file with default values.")]
         public static void InitCfg(
@@ -40,7 +67,7 @@ namespace Altairis.AutoAcme.Manager {
             verboseMode = verbose;
 
             // Check if config file already exists
-            if (!overwrite && File.Exists(cfgFileName)) CrashExit("File already exists. Use /y to overwrite.");
+            if (!overwrite && File.Exists(cfgFileName)) CrashExit("Configuration file already exists. Use /y to overwrite.");
 
             // Create default configuration
             cfgStore = new Configuration.Store();
@@ -102,6 +129,9 @@ namespace Altairis.AutoAcme.Manager {
             EnsureFolderExists(cfgStore.ChallengeFolder);
             EnsureFolderExists(cfgStore.PfxFolder);
             Console.WriteLine(string.Empty);
+
+            // Create web.config;
+            InitWeb(cfgFileName, overwrite, verbose);
 
             // Display farewell message
             Console.WriteLine("There are some additional options you can set in configuration file directly.");

@@ -1,0 +1,11 @@
+﻿<configuration>
+  <system.webServer>
+    <staticContent>
+      <!--
+        ACME server requires that the verification file is served either without
+        Content-Type header or with "text/json". This setting ensures that.
+      -->
+      <mimeMap fileExtension="." mimeType="text/json" />
+    </staticContent>
+  </system.webServer>
+</configuration>
