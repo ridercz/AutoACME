@@ -33,5 +33,3 @@ CD Distribution
 "C:\Program Files\7-Zip\7z.exe" a ..\AutoACME.zip *
 CD ..
 
-ECHO Cleaning up...
-IF EXIST Distribution RMDIR /Q /S Distribution
