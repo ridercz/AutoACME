@@ -1,15 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using Altairis.AutoAcme.Configuration;
 using Altairis.AutoAcme.Core;
 using Altairis.AutoAcme.IisSync.InetInfo;
 using NConsoler;
-using System.Diagnostics.Tracing;
-using System.Diagnostics;
 
 namespace Altairis.AutoAcme.IisSync {
     class Program {

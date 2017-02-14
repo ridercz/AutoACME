@@ -7,7 +7,6 @@ using System.Text;
 using Altairis.AutoAcme.Configuration;
 using Altairis.AutoAcme.Core;
 using Certes.Acme;
-using Certes.Pkcs;
 using NConsoler;
 
 namespace Altairis.AutoAcme.Manager {
