@@ -6,10 +6,12 @@ using Certes.Pkcs;
 
 namespace Altairis.AutoAcme.Core {
     public class CertificateRequestResult {
-        public X509Certificate2 Certificate { get; set; }
-        public byte[] PfxData { get; set; }
-        public KeyInfo PrivateKey { get; set; }
 
+        public X509Certificate2 Certificate { get; set; }
+
+        public byte[] PfxData { get; set; }
+
+        public KeyInfo PrivateKey { get; set; }
 
         public void Export(string hostName, string pfxFolder, string pemFolder) {
             // Save to PFX file
