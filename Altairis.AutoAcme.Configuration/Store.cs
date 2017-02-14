@@ -16,6 +16,8 @@ namespace Altairis.AutoAcme.Configuration {
 
         public string PfxPassword { get; set; }
 
+        public string PemFolder { get; set; }
+
         public Uri ServerUri { get; set; } = WellKnownServers.LetsEncrypt;
 
         public int ChallengeVerificationRetryCount { get; set; } = 10;

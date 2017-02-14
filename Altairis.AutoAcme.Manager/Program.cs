@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -6,6 +7,7 @@ using System.Text;
 using Altairis.AutoAcme.Configuration;
 using Altairis.AutoAcme.Core;
 using Certes.Acme;
+using Certes.Pkcs;
 using NConsoler;
 
 namespace Altairis.AutoAcme.Manager {
@@ -177,11 +179,11 @@ namespace Altairis.AutoAcme.Manager {
             Trace.WriteLine($"Thumbprint:    {result.Certificate.Thumbprint}");
             Trace.Unindent();
 
-            // Save to PFX file
-            var pfxFileName = Path.Combine(cfgStore.PfxFolder, hostName + ".pfx");
-            Trace.Write($"Saving PFX to {pfxFileName}...");
-            File.WriteAllBytes(pfxFileName, result.PfxData);
-            Trace.WriteLine("OK");
+            // Export files
+            Trace.WriteLine("Exporting files:");
+            Trace.Indent();
+            result.Export(hostName, cfgStore.PfxFolder, cfgStore.PemFolder);
+            Trace.Unindent();
 
             // Update database entry
             Trace.Write("Updating database entry...");
@@ -214,22 +216,11 @@ namespace Altairis.AutoAcme.Manager {
             if (host == null) CrashExit($"Host '{hostName}' was not found.");
             Trace.WriteLine("OK");
 
-            // Delete PFX file
-            try {
-                var pfxFileName = Path.Combine(cfgStore.PfxFolder, hostName + ".pfx");
-                Trace.Write($"Deleting PFX file {pfxFileName}...");
-                File.Delete(pfxFileName);
-                Trace.WriteLine("OK");
-            }
-            catch (Exception ex) {
-                Trace.WriteLine("Warning!");
-                Trace.WriteLine(ex.Message);
-
-                if (verboseMode) {
-                    Trace.WriteLine(string.Empty);
-                    Trace.WriteLine(ex);
-                }
-            }
+            // Delete files
+            Trace.WriteLine("Deleting files:");
+            Trace.Indent();
+            DeleteHostFiles(hostName, cfgStore.PfxFolder, cfgStore.PemFolder);
+            Trace.Unindent();
 
             // Delete entry from configuration
             Trace.Write("Deleting configuration entry...");
@@ -326,22 +317,11 @@ namespace Altairis.AutoAcme.Manager {
                 cfgStore.Hosts.Remove(item);
                 Trace.WriteLine("OK");
 
-                // Delete PFX file
-                try {
-                    var pfxFileName = Path.Combine(cfgStore.PfxFolder, item.CommonName + ".pfx");
-                    Trace.Write($"Deleting PFX file {pfxFileName}...");
-                    File.Delete(pfxFileName);
-                    Trace.WriteLine("OK");
-                }
-                catch (Exception ex) {
-                    Trace.WriteLine("Warning!");
-                    Trace.WriteLine("    " + ex.Message);
-
-                    if (verboseMode) {
-                        Trace.WriteLine(string.Empty);
-                        Trace.WriteLine(ex);
-                    }
-                }
+                // Delete files
+                Trace.WriteLine("Deleting files:");
+                Trace.Indent();
+                DeleteHostFiles(item.CommonName, cfgStore.PfxFolder, cfgStore.PemFolder);
+                Trace.Unindent();
 
                 Trace.Unindent();
             }
@@ -417,11 +397,11 @@ namespace Altairis.AutoAcme.Manager {
                     Trace.WriteLine($"Thumbprint:    {result.Certificate.Thumbprint}");
                     Trace.Unindent();
 
-                    // Save to PFX file
-                    var pfxFileName = Path.Combine(cfgStore.PfxFolder, item.CommonName + ".pfx");
-                    Trace.Write($"Saving PFX to {pfxFileName}...");
-                    File.WriteAllBytes(pfxFileName, result.PfxData);
-                    Trace.WriteLine("OK");
+                    // Export files
+                    Trace.WriteLine("Exporting files:");
+                    Trace.Indent();
+                    result.Export(item.CommonName, cfgStore.PfxFolder, cfgStore.PemFolder);
+                    Trace.Unindent();
 
                     // Update database entry
                     Trace.Write("Updating database entry...");
@@ -450,6 +430,36 @@ namespace Altairis.AutoAcme.Manager {
         }
 
         // Helper methods
+
+        private static void DeleteHostFiles(string hostName, string pfxFolder, string pemFolder) {
+            // Prepare list of files to delete
+            var filesToDelete = new List<string>();
+            if (!string.IsNullOrWhiteSpace(pfxFolder)) {
+                filesToDelete.Add(Path.Combine(pfxFolder, hostName + ".pfx"));
+            }
+            if (!string.IsNullOrWhiteSpace(pemFolder)) {
+                filesToDelete.Add(Path.Combine(pemFolder, hostName + ".pem"));
+                filesToDelete.Add(Path.Combine(pemFolder, hostName + ".crt"));
+            }
+
+            // Try to delete those files
+            foreach (var file in filesToDelete) {
+                try {
+                    Trace.Write($"Deleting file {file}...");
+                    File.Delete(file);
+                    Trace.WriteLine("OK");
+                }
+                catch (Exception ex) {
+                    Trace.WriteLine("Warning!");
+                    Trace.WriteLine(ex.Message);
+
+                    if (verboseMode) {
+                        Trace.WriteLine(string.Empty);
+                        Trace.WriteLine(ex);
+                    }
+                }
+            }
+        }
 
         private static void CreateChallenge(string tokenId, string authString) {
             if (tokenId == null) throw new ArgumentNullException(nameof(tokenId));

@@ -112,11 +112,11 @@ namespace Altairis.AutoAcme.IisSync {
                             continue;
                         }
 
-                        // Save to PFX file
-                        var pfxFileName = Path.Combine(cfgStore.PfxFolder, binding.Host + ".pfx");
-                        Trace.Write($"Saving PFX to {pfxFileName}...");
-                        File.WriteAllBytes(pfxFileName, result.PfxData);
-                        Trace.WriteLine("OK");
+                        // Export files
+                        Trace.WriteLine("Exporting files:");
+                        Trace.Indent();
+                        result.Export(binding.Host, cfgStore.PfxFolder, cfgStore.PemFolder);
+                        Trace.Unindent();
 
                         // Update database entry
                         Trace.Write("Updating database entry...");

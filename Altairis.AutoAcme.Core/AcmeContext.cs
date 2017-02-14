@@ -68,6 +68,7 @@ namespace Altairis.AutoAcme.Core {
 
             return new CertificateRequestResult {
                 Certificate = cert,
+                PrivateKey = acmeCert.Key,
                 PfxData = pfxData
             };
         }
