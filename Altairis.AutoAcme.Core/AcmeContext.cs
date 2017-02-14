@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
@@ -14,7 +15,7 @@ namespace Altairis.AutoAcme.Core {
 
         public int ChallengeVerificationRetryCount { get; set; } = 10;
 
-        public TimeSpan ChallengeVerificationWaitSeconds { get; set; } = TimeSpan.FromSeconds(5);
+        public TimeSpan ChallengeVerificationWait { get; set; } = TimeSpan.FromSeconds(5);
 
         public AcmeContext(Uri serverAddress) {
             if (serverAddress == null) throw new ArgumentNullException(nameof(serverAddress));
@@ -28,10 +29,10 @@ namespace Altairis.AutoAcme.Core {
 
             Trace.Write($"Creating registration for '{email}'...");
             this.account = await this.client.NewRegistraton("mailto:" + email);
+            this.account.Data.Agreement = this.account.GetTermsOfServiceUri();
             Trace.WriteLine("OK");
 
             Trace.Write($"Accepting TOS at {this.account.Data.Agreement}...");
-            this.account.Data.Agreement = this.account.GetTermsOfServiceUri();
             this.account = await this.client.UpdateRegistration(account);
             Trace.WriteLine("OK");
         }
@@ -40,14 +41,26 @@ namespace Altairis.AutoAcme.Core {
             this.LoginAsync(email).GetAwaiter().GetResult();
         }
 
-        public async Task<CertificateRequestResult> GetCertificateAsync(string hostName, string pfxPassword, Action<string, string> challengeCallback, Action<string> cleanupCallback) {
+        public async Task<CertificateRequestResult> GetCertificateAsync(string hostName, string pfxPassword, Action<string, string> challengeCallback, Action<string> cleanupCallback, bool skipTest = false) {
             if (hostName == null) throw new ArgumentNullException(nameof(hostName));
             if (string.IsNullOrWhiteSpace(hostName)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(hostName));
             if (challengeCallback == null) throw new ArgumentNullException(nameof(challengeCallback));
             if (this.client == null) throw new ObjectDisposedException("AcmeContext");
 
+            // Test authorization
+            if (!skipTest) {
+                Trace.WriteLine("Testing authorization:");
+                Trace.Indent();
+                var probeResult = TestAuthorization(hostName, challengeCallback, cleanupCallback);
+                Trace.Unindent();
+                if (!probeResult) throw new Exception("Test authorization failed");
+            }
+
             // Get authorization
+            Trace.WriteLine("Getting authorization:");
+            Trace.Indent();
             var authorizationResult = await GetAuthorization(hostName, challengeCallback, cleanupCallback);
+            Trace.Unindent();
             if (authorizationResult != EntityStatus.Valid) throw new Exception($"Authorization failed with status {authorizationResult}");
 
             // Get certificate
@@ -72,11 +85,113 @@ namespace Altairis.AutoAcme.Core {
             };
         }
 
-        public CertificateRequestResult GetCertificate(string hostName, string pfxPassword, Action<string, string> challengeCallback, Action<string> cleanupCallback) {
-            return this.GetCertificateAsync(hostName, pfxPassword, challengeCallback, cleanupCallback).GetAwaiter().GetResult();
+        public CertificateRequestResult GetCertificate(string hostName, string pfxPassword, Action<string, string> challengeCallback, Action<string> cleanupCallback, bool skipTest = false) {
+            return this.GetCertificateAsync(hostName, pfxPassword, challengeCallback, cleanupCallback, skipTest).GetAwaiter().GetResult();
         }
 
         // Helper methods
+
+        public static bool TestAuthorization(string hostName, Action<string, string> challengeCallback, Action<string> cleanupCallback) {
+            // Create test challenge name and value
+            var challengeName = "probe_" + Guid.NewGuid().ToString();
+            var challengeValue = Guid.NewGuid().ToString();
+
+            // Create test challenge file
+            challengeCallback(challengeName, challengeValue);
+
+            // Try to access the file via HTTP
+            Trace.WriteLine("Testing HTTP challenge:");
+            Trace.Indent();
+            var httpUri = $"http://{hostName}/.well-known/acme-challenge/{challengeName}";
+            var result = CompareTestChallenge(httpUri, challengeValue);
+            Trace.Unindent();
+
+            if (!result) {
+                // Try to access the file via HTTPS
+                Trace.WriteLine("Testing HTTPS challenge:");
+                Trace.Indent();
+                var httpsUri = $"https://{hostName}/.well-known/acme-challenge/{challengeName}";
+                result = CompareTestChallenge(httpUri, challengeValue);
+                Trace.Unindent();
+            }
+
+            // Cleanup
+            cleanupCallback(challengeName);
+
+            return result;
+        }
+
+        private static bool CompareTestChallenge(string uri, string expectedValue) {
+            if (uri == null) throw new ArgumentNullException(nameof(uri));
+            if (string.IsNullOrWhiteSpace(uri)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(uri));
+            if (expectedValue == null) throw new ArgumentNullException(nameof(expectedValue));
+            if (string.IsNullOrWhiteSpace(expectedValue)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(expectedValue));
+
+            var result = true;
+
+            try {
+                // Prepare request
+                Trace.Write($"Preparing request to {uri}...");
+                var rq = System.Net.WebRequest.CreateHttp(uri);
+                rq.AllowAutoRedirect = true;
+                rq.ServerCertificateValidationCallback += (sender, certificate, chain, sslPolicyErrors) => { return true; };
+                Trace.WriteLine("OK");
+
+                // Get response
+                Trace.Write("Getting response...");
+                using (var rp = rq.GetResponse() as System.Net.HttpWebResponse) {
+                    Trace.WriteLine("OK");
+                    Trace.Write("Reading response...");
+                    string responseText;
+                    using (var s = rp.GetResponseStream())
+                    using (var tr = new StreamReader(s)) {
+                        responseText = tr.ReadToEnd();
+                        Trace.WriteLine("OK");
+                    }
+
+                    Trace.Indent();
+
+                    // Analyze response headers
+                    if (rp.StatusCode == System.Net.HttpStatusCode.OK) {
+                        Trace.WriteLine("OK: Status code 200");
+                    }
+                    else {
+                        Trace.WriteLine($"ERROR: Response contains status code {rp.StatusCode}. Expecting 200 (OK).");
+                        result = false;
+                    }
+
+                    if (!rp.Headers.AllKeys.Contains("Content-Type", StringComparer.OrdinalIgnoreCase)) {
+                        Trace.WriteLine("OK: No Content-Type header");
+                    }
+                    else if (rp.ContentType.Equals("text/json")) {
+                        Trace.WriteLine("OK: Content-Type header");
+                    }
+                    else {
+                        Trace.WriteLine($"ERROR: Response contains Content-Type {rp.ContentType}. This header must either be 'text/json' or be missing.");
+                        result = false;
+                    }
+
+                    // Analyze response contents
+                    if (expectedValue.Equals(responseText)) {
+                        Trace.WriteLine("OK: Expected response received");
+                    }
+                    else {
+                        Trace.WriteLine($"ERROR: Invalid response content. Expected '{expectedValue}', got the following:");
+                        Trace.WriteLine(responseText);
+                        result = false;
+                    }
+                    rp.Close();
+
+                    Trace.Unindent();
+                }
+            }
+            catch (Exception ex) {
+                Trace.WriteLine("Failed!");
+                Trace.WriteLine(ex.Message);
+                result = false;
+            }
+            return result;
+        }
 
         private async Task<string> GetAuthorization(string hostName, Action<string, string> challengeCallback, Action<string> cleanupCallback) {
             // Create authorization request
@@ -110,7 +225,7 @@ namespace Altairis.AutoAcme.Core {
                 Trace.Write(".");
                 ar = await this.client.GetAuthorization(chr.Location);
                 if (ar.Data.Status != EntityStatus.Pending) break;
-                await Task.Delay(this.ChallengeVerificationWaitSeconds);
+                await Task.Delay(this.ChallengeVerificationWait);
                 retryCount--;
             }
 

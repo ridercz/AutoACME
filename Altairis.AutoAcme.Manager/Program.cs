@@ -139,9 +139,32 @@ namespace Altairis.AutoAcme.Manager {
             Console.WriteLine("See documentation at www.autoacme.net for reference.");
         }
 
+        [Action("Test new host verification.")]
+        public static void TestHost(
+            [Required(Description = "Host name")] string hostName,
+            [Optional(null, "cfg", Description = "Custom configuration file name")] string cfgFileName,
+            [Optional(false, Description = "Show verbose error messages")] bool verbose) {
+
+            verboseMode = verbose;
+            if (cfgStore == null) LoadConfig(cfgFileName);
+            hostName = hostName.Trim().ToLower();
+
+            var result = AcmeContext.TestAuthorization(hostName, CreateChallenge, CleanupChallenge);
+            Trace.WriteLine(string.Empty);
+
+            if (result) {
+                Trace.WriteLine("Test authorization was successful. The real verification may still fail,");
+                Trace.WriteLine("ie. when server is not accessible from outside.");
+            }
+            else {
+                Trace.WriteLine("Test authorization failed. Examine the above to find out why.");
+            }
+        }
+
         [Action("Add new host to manage.")]
         public static void AddHost(
             [Required(Description = "Host name")] string hostName,
+            [Optional(false, "xt", Description = "Skip authentication test")] bool skipTest,
             [Optional(null, "cfg", Description = "Custom configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
@@ -155,19 +178,20 @@ namespace Altairis.AutoAcme.Manager {
             Trace.WriteLine("OK");
 
             // Request certificate
-            Trace.Write($"Requesting cerificate for {hostName}:");
+            Trace.WriteLine($"Requesting cerificate for {hostName}:");
             Trace.Indent();
             CertificateRequestResult result = null;
             try {
                 using (var ac = new AcmeContext(cfgStore.ServerUri)) {
                     ac.ChallengeVerificationRetryCount = cfgStore.ChallengeVerificationRetryCount;
-                    ac.ChallengeVerificationWaitSeconds = TimeSpan.FromSeconds(cfgStore.ChallengeVerificationWaitSeconds);
+                    ac.ChallengeVerificationWait = TimeSpan.FromSeconds(cfgStore.ChallengeVerificationWaitSeconds);
                     ac.Login(cfgStore.EmailAddress);
                     result = ac.GetCertificate(
                         hostName: hostName,
                         pfxPassword: cfgStore.PfxPassword,
                         challengeCallback: CreateChallenge,
-                        cleanupCallback: CleanupChallenge);
+                        cleanupCallback: CleanupChallenge,
+                        skipTest: skipTest);
                 }
             }
             catch (Exception ex) {
@@ -345,6 +369,7 @@ namespace Altairis.AutoAcme.Manager {
 
         [Action("Renews certificates expiring in near future.")]
         public static void Renew(
+            [Optional(false, "xt", Description = "Skip authentication test")] bool skipTest,
             [Optional(false, "wi", Description = "What if - only show hosts to be renewed")] bool whatIf,
             [Optional(null, "cfg", Description = "Custom configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
@@ -382,13 +407,14 @@ namespace Altairis.AutoAcme.Manager {
                 try {
                     using (var ac = new AcmeContext(cfgStore.ServerUri)) {
                         ac.ChallengeVerificationRetryCount = cfgStore.ChallengeVerificationRetryCount;
-                        ac.ChallengeVerificationWaitSeconds = TimeSpan.FromSeconds(cfgStore.ChallengeVerificationWaitSeconds);
+                        ac.ChallengeVerificationWait = TimeSpan.FromSeconds(cfgStore.ChallengeVerificationWaitSeconds);
                         ac.Login(cfgStore.EmailAddress);
                         result = ac.GetCertificate(
                             hostName: item.CommonName,
                             pfxPassword: cfgStore.PfxPassword,
                             challengeCallback: CreateChallenge,
-                            cleanupCallback: CleanupChallenge);
+                            cleanupCallback: CleanupChallenge,
+                            skipTest: skipTest);
                     }
                 }
                 catch (Exception ex) {
@@ -438,7 +464,7 @@ namespace Altairis.AutoAcme.Manager {
             [Optional(null, "cfg", Description = "Custom configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
-            Renew(whatIf, cfgFileName, verbose);
+            Renew(false, whatIf, cfgFileName, verbose);
             Purge(whatIf, cfgFileName, verbose);
         }
 

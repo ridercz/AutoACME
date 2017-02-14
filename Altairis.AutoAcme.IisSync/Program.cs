@@ -77,7 +77,7 @@ namespace Altairis.AutoAcme.IisSync {
 
                 using (var ac = new AcmeContext(cfgStore.ServerUri)) {
                     ac.ChallengeVerificationRetryCount = cfgStore.ChallengeVerificationRetryCount;
-                    ac.ChallengeVerificationWaitSeconds = TimeSpan.FromSeconds(cfgStore.ChallengeVerificationWaitSeconds);
+                    ac.ChallengeVerificationWait = TimeSpan.FromSeconds(cfgStore.ChallengeVerificationWaitSeconds);
 
                     // Login to Let's Encrypt service
                     ac.Login(cfgStore.EmailAddress);
