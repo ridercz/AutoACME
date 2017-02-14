@@ -156,48 +156,62 @@ namespace Altairis.AutoAcme.Manager {
             Trace.WriteLine("OK");
 
             // Request certificate
-            CertificateRequestResult result;
-            using (var ac = new AcmeContext(cfgStore.ServerUri)) {
-                ac.ChallengeVerificationRetryCount = cfgStore.ChallengeVerificationRetryCount;
-                ac.ChallengeVerificationWaitSeconds = TimeSpan.FromSeconds(cfgStore.ChallengeVerificationWaitSeconds);
-                ac.Login(cfgStore.EmailAddress);
-                result = ac.GetCertificate(
-                    hostName: hostName,
-                    pfxPassword: cfgStore.PfxPassword,
-                    challengeCallback: CreateChallenge,
-                    cleanupCallback: CleanupChallenge);
+            Trace.Write($"Requesting cerificate for {hostName}:");
+            Trace.Indent();
+            CertificateRequestResult result = null;
+            try {
+                using (var ac = new AcmeContext(cfgStore.ServerUri)) {
+                    ac.ChallengeVerificationRetryCount = cfgStore.ChallengeVerificationRetryCount;
+                    ac.ChallengeVerificationWaitSeconds = TimeSpan.FromSeconds(cfgStore.ChallengeVerificationWaitSeconds);
+                    ac.Login(cfgStore.EmailAddress);
+                    result = ac.GetCertificate(
+                        hostName: hostName,
+                        pfxPassword: cfgStore.PfxPassword,
+                        challengeCallback: CreateChallenge,
+                        cleanupCallback: CleanupChallenge);
+                }
+            }
+            catch (Exception ex) {
+                Trace.WriteLine($"Request failed: {ex.Message}");
+                if (verboseMode) {
+                    Trace.WriteLine(string.Empty);
+                    Trace.WriteLine(ex);
+                }
             }
 
-            // Display certificate info
-            Trace.Indent();
-            Trace.WriteLine("Certificate information:");
-            Trace.WriteLine($"Issuer:        {result.Certificate.Issuer}");
-            Trace.WriteLine($"Subject:       {result.Certificate.Subject}");
-            Trace.WriteLine($"Serial number: {result.Certificate.SerialNumber}");
-            Trace.WriteLine($"Not before:    {result.Certificate.NotBefore:o}");
-            Trace.WriteLine($"Not after:     {result.Certificate.NotAfter:o}");
-            Trace.WriteLine($"Thumbprint:    {result.Certificate.Thumbprint}");
-            Trace.Unindent();
+            if (result != null) {
+                // Display certificate info
+                Trace.Indent();
+                Trace.WriteLine("Certificate information:");
+                Trace.WriteLine($"Issuer:        {result.Certificate.Issuer}");
+                Trace.WriteLine($"Subject:       {result.Certificate.Subject}");
+                Trace.WriteLine($"Serial number: {result.Certificate.SerialNumber}");
+                Trace.WriteLine($"Not before:    {result.Certificate.NotBefore:o}");
+                Trace.WriteLine($"Not after:     {result.Certificate.NotAfter:o}");
+                Trace.WriteLine($"Thumbprint:    {result.Certificate.Thumbprint}");
+                Trace.Unindent();
+                Trace.Unindent();
 
-            // Export files
-            Trace.WriteLine("Exporting files:");
-            Trace.Indent();
-            result.Export(hostName, cfgStore.PfxFolder, cfgStore.PemFolder);
-            Trace.Unindent();
+                // Export files
+                Trace.WriteLine("Exporting files:");
+                Trace.Indent();
+                result.Export(hostName, cfgStore.PfxFolder, cfgStore.PemFolder);
+                Trace.Unindent();
 
-            // Update database entry
-            Trace.Write("Updating database entry...");
-            cfgStore.Hosts.Add(new Host {
-                CommonName = hostName,
-                NotBefore = result.Certificate.NotBefore,
-                NotAfter = result.Certificate.NotAfter,
-                SerialNumber = result.Certificate.SerialNumber,
-                Thumbprint = result.Certificate.Thumbprint
-            });
-            Trace.WriteLine("OK");
+                // Update database entry
+                Trace.Write("Updating database entry...");
+                cfgStore.Hosts.Add(new Host {
+                    CommonName = hostName,
+                    NotBefore = result.Certificate.NotBefore,
+                    NotAfter = result.Certificate.NotAfter,
+                    SerialNumber = result.Certificate.SerialNumber,
+                    Thumbprint = result.Certificate.Thumbprint
+                });
+                Trace.WriteLine("OK");
 
-            // Save configuration
-            SaveConfig(cfgFileName);
+                // Save configuration
+                SaveConfig(cfgFileName);
+            }
         }
 
         [Action("Deletes host and keyfile from management.")]

@@ -103,7 +103,7 @@ namespace Altairis.AutoAcme.IisSync {
                                 cleanupCallback: CleanupChallenge);
                         }
                         catch (Exception ex) {
-                            Trace.WriteLine($"Process failed: {ex.Message}");
+                            Trace.WriteLine($"Request failed: {ex.Message}");
                             if (verboseMode) {
                                 Trace.WriteLine(string.Empty);
                                 Trace.WriteLine(ex);
