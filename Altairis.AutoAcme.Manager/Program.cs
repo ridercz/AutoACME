@@ -461,10 +461,11 @@ namespace Altairis.AutoAcme.Manager {
         [Action("Combines 'renew' and 'purge'.")]
         public static void Maintenance(
             [Optional(false, "wi", Description = "What if - only show hosts to be purged or renewed")] bool whatIf,
+            [Optional(false, "xt", Description = "Skip authentication test")] bool skipTest,
             [Optional(null, "cfg", Description = "Custom configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
 
-            Renew(false, whatIf, cfgFileName, verbose);
+            Renew(skipTest, whatIf, cfgFileName, verbose);
             Purge(whatIf, cfgFileName, verbose);
         }
 
