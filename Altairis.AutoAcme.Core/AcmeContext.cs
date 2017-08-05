@@ -7,11 +7,11 @@ using System.Threading.Tasks;
 using Certes;
 using Certes.Acme;
 using Certes.Pkcs;
+using Newtonsoft.Json;
 
 namespace Altairis.AutoAcme.Core {
     public class AcmeContext : IDisposable {
         private AcmeClient client;
-        private AcmeAccount account;
 
         public int ChallengeVerificationRetryCount { get; set; } = 10;
 
@@ -22,23 +22,42 @@ namespace Altairis.AutoAcme.Core {
             this.client = new AcmeClient(serverAddress);
         }
 
-        public async Task LoginAsync(string email) {
+        public async Task<string> RegisterAndLoginAsync(string email) {
             if (email == null) throw new ArgumentNullException(nameof(email));
             if (string.IsNullOrWhiteSpace(email)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(email));
             if (this.client == null) throw new ObjectDisposedException("AcmeContext");
 
             Trace.Write($"Creating registration for '{email}'...");
-            this.account = await this.client.NewRegistraton("mailto:" + email);
-            this.account.Data.Agreement = this.account.GetTermsOfServiceUri();
+            var account = await this.client.NewRegistraton("mailto:" + email);
             Trace.WriteLine("OK");
 
-            Trace.Write($"Accepting TOS at {this.account.Data.Agreement}...");
-            this.account = await this.client.UpdateRegistration(account);
+            account.Data.Agreement = account.GetTermsOfServiceUri();
+            Trace.Write($"Accepting TOS at {account.Data.Agreement}...");
+            account = await this.client.UpdateRegistration(account);
+            Trace.WriteLine("OK");
+
+            return JsonConvert.SerializeObject(account);
+        }
+
+        public string RegisterAndLogin(string email) {
+            return this.RegisterAndLoginAsync(email).GetAwaiter().GetResult();
+        }
+
+        public async Task LoginAsync(string serializedAccountData) {
+            if (serializedAccountData == null) throw new ArgumentNullException(nameof(serializedAccountData));
+            if (string.IsNullOrWhiteSpace(serializedAccountData)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(serializedAccountData));
+
+            var account = JsonConvert.DeserializeObject<AcmeAccount>(serializedAccountData);
+            this.client.Use(account.Key);
+
+            account.Data.Agreement = account.GetTermsOfServiceUri();
+            Trace.Write($"Accepting TOS at {account.Data.Agreement}...");
+            account = await this.client.UpdateRegistration(account);
             Trace.WriteLine("OK");
         }
 
-        public void Login(string email) {
-            this.LoginAsync(email).GetAwaiter().GetResult();
+        public void Login(string serializedAccountData) {
+            this.LoginAsync(serializedAccountData).GetAwaiter().GetResult();
         }
 
         public async Task<CertificateRequestResult> GetCertificateAsync(string hostName, string pfxPassword, Action<string, string> challengeCallback, Action<string> cleanupCallback, bool skipTest = false) {

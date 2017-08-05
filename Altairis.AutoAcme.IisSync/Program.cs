@@ -80,7 +80,12 @@ namespace Altairis.AutoAcme.IisSync {
                     ac.ChallengeVerificationWait = TimeSpan.FromSeconds(cfgStore.ChallengeVerificationWaitSeconds);
 
                     // Login to Let's Encrypt service
-                    ac.Login(cfgStore.EmailAddress);
+                    if (string.IsNullOrEmpty(cfgStore.SerializedAccountData)) {
+                        cfgStore.SerializedAccountData = ac.RegisterAndLogin(cfgStore.EmailAddress);
+                    }
+                    else {
+                        ac.Login(cfgStore.SerializedAccountData);
+                    }
 
                     // Add new hosts
                     Trace.Indent();

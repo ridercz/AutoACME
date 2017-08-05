@@ -10,6 +10,8 @@ namespace Altairis.AutoAcme.Configuration {
 
         public string EmailAddress { get; set; } = "example@example.com";
 
+        public string SerializedAccountData { get; set; }
+
         public string ChallengeFolder { get; set; } = @"C:\InetPub\wwwroot\AutoAcme";
 
         public string PfxFolder { get; set; } = @"C:\CertStore\PFX";

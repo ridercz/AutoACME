@@ -186,7 +186,14 @@ namespace Altairis.AutoAcme.Manager {
                 using (var ac = new AcmeContext(cfgStore.ServerUri)) {
                     ac.ChallengeVerificationRetryCount = cfgStore.ChallengeVerificationRetryCount;
                     ac.ChallengeVerificationWait = TimeSpan.FromSeconds(cfgStore.ChallengeVerificationWaitSeconds);
-                    ac.Login(cfgStore.EmailAddress);
+
+                    if (string.IsNullOrEmpty(cfgStore.SerializedAccountData)) {
+                        cfgStore.SerializedAccountData = ac.RegisterAndLogin(cfgStore.EmailAddress);
+                    }
+                    else {
+                        ac.Login(cfgStore.SerializedAccountData);
+                    }
+
                     result = ac.GetCertificate(
                         hostName: hostName,
                         pfxPassword: cfgStore.PfxPassword,
@@ -393,7 +400,13 @@ namespace Altairis.AutoAcme.Manager {
                 try {
                     ac.ChallengeVerificationRetryCount = cfgStore.ChallengeVerificationRetryCount;
                     ac.ChallengeVerificationWait = TimeSpan.FromSeconds(cfgStore.ChallengeVerificationWaitSeconds);
-                    ac.Login(cfgStore.EmailAddress);
+
+                    if (string.IsNullOrEmpty(cfgStore.SerializedAccountData)) {
+                        cfgStore.SerializedAccountData = ac.RegisterAndLogin(cfgStore.EmailAddress);
+                    }
+                    else {
+                        ac.Login(cfgStore.SerializedAccountData);
+                    }
                 }
                 catch (Exception ex) {
                     Trace.WriteLine($"Login failed: {ex.Message}");
