@@ -40,6 +40,9 @@
       <HintPath>..\packages\Portable.BouncyCastle.1.8.1.2\lib\net4\BouncyCastle.Crypto.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="Certes, Version=1.0.7.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Certes.1.0.7\lib\net45\Certes.dll</HintPath>
+    </Reference>
     <Reference Include="NConsoler, Version=2.0.0.0, Culture=neutral, PublicKeyToken=652faff55808657c, processorArchitecture=MSIL">
       <HintPath>..\packages\NConsoler.2.0.0.0\lib\NConsoler.dll</HintPath>
       <Private>True</Private>
