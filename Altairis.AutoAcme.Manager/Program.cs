@@ -137,7 +137,7 @@ namespace Altairis.AutoAcme.Manager {
 
             // Create account
             using (var ac = new AcmeContext(cfgStore.ServerUri)) {
-                cfgStore.SerializedAccountData= ac.RegisterAndLogin(cfgStore.EmailAddress);
+                cfgStore.SerializedAccountData = ac.RegisterAndLogin(cfgStore.EmailAddress);
             }
             SaveConfig(cfgFileName);
 
@@ -427,8 +427,11 @@ namespace Altairis.AutoAcme.Manager {
                 }
 
                 // Renew them
-                Trace.Indent();
                 foreach (var item in expiringHosts) {
+                    // Hack: fix indentation
+                    while (Trace.IndentLevel > 0) Trace.Unindent();
+
+                    // Display info
                     var dte = Math.Floor(item.NotAfter.Subtract(DateTime.Now).TotalDays);
                     if (dte < 0) {
                         Trace.WriteLine($"Host {item.CommonName} expired {-dte} days ago ({item.NotAfter:D})");
@@ -438,6 +441,7 @@ namespace Altairis.AutoAcme.Manager {
                     }
 
                     if (whatIf) continue;
+
                     Trace.Indent();
 
                     // Request certificate
@@ -458,10 +462,11 @@ namespace Altairis.AutoAcme.Manager {
                             Trace.WriteLine(ex);
                         }
                     }
+
                     if (result != null) {
                         // Display certificate info
-                        Trace.Indent();
                         Trace.WriteLine("Certificate information:");
+                        Trace.Indent();
                         Trace.WriteLine($"Issuer:        {result.Certificate.Issuer}");
                         Trace.WriteLine($"Subject:       {result.Certificate.Subject}");
                         Trace.WriteLine($"Serial number: {result.Certificate.SerialNumber}");
@@ -487,9 +492,9 @@ namespace Altairis.AutoAcme.Manager {
                         // Save configuration
                         SaveConfig(cfgFileName);
                     }
+
                     Trace.Unindent();
                 }
-                Trace.Unindent();
             }
         }
 

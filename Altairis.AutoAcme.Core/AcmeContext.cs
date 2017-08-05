@@ -78,11 +78,13 @@ namespace Altairis.AutoAcme.Core {
             // Get authorization
             Trace.WriteLine("Getting authorization:");
             Trace.Indent();
-            var authorizationResult = await GetAuthorization(hostName, challengeCallback, cleanupCallback);
+            var authorizationResult = GetAuthorization(hostName, challengeCallback, cleanupCallback).Result;
             Trace.Unindent();
             if (authorizationResult != EntityStatus.Valid) throw new Exception($"Authorization failed with status {authorizationResult}");
 
             // Get certificate
+            Trace.WriteLine("Processing certificate:");
+            Trace.Indent();
             Trace.Write("Requesting certificate...");
             var csr = new CertificationRequestBuilder();
             csr.AddName($"CN={hostName}");
@@ -96,6 +98,7 @@ namespace Altairis.AutoAcme.Core {
             pfxBuilder.FullChain = false;
             var pfxData = pfxBuilder.Build(hostName, pfxPassword);
             Trace.WriteLine("OK");
+            Trace.Unindent();
 
             return new CertificateRequestResult {
                 Certificate = cert,
@@ -105,7 +108,7 @@ namespace Altairis.AutoAcme.Core {
         }
 
         public CertificateRequestResult GetCertificate(string hostName, string pfxPassword, Action<string, string> challengeCallback, Action<string> cleanupCallback, bool skipTest = false) {
-            return this.GetCertificateAsync(hostName, pfxPassword, challengeCallback, cleanupCallback, skipTest).GetAwaiter().GetResult();
+            return this.GetCertificateAsync(hostName, pfxPassword, challengeCallback, cleanupCallback, skipTest).Result;
         }
 
         // Helper methods
