@@ -135,6 +135,12 @@ namespace Altairis.AutoAcme.Manager {
             // Create web.config;
             InitWeb(cfgFileName, overwrite, verbose);
 
+            // Create account
+            using (var ac = new AcmeContext(cfgStore.ServerUri)) {
+                cfgStore.SerializedAccountData= ac.RegisterAndLogin(cfgStore.EmailAddress);
+            }
+            SaveConfig(cfgFileName);
+
             // Display farewell message
             Console.WriteLine("There are some additional options you can set in configuration file directly.");
             Console.WriteLine("See documentation at www.autoacme.net for reference.");
@@ -189,6 +195,7 @@ namespace Altairis.AutoAcme.Manager {
 
                     if (string.IsNullOrEmpty(cfgStore.SerializedAccountData)) {
                         cfgStore.SerializedAccountData = ac.RegisterAndLogin(cfgStore.EmailAddress);
+                        SaveConfig(cfgFileName);
                     }
                     else {
                         ac.Login(cfgStore.SerializedAccountData);
@@ -208,6 +215,7 @@ namespace Altairis.AutoAcme.Manager {
                     Trace.WriteLine(string.Empty);
                     Trace.WriteLine(ex);
                 }
+                CrashExit("Unable to get certificate for new host.");
             }
 
             if (result != null) {
@@ -403,6 +411,7 @@ namespace Altairis.AutoAcme.Manager {
 
                     if (string.IsNullOrEmpty(cfgStore.SerializedAccountData)) {
                         cfgStore.SerializedAccountData = ac.RegisterAndLogin(cfgStore.EmailAddress);
+                        SaveConfig(cfgFileName);
                     }
                     else {
                         ac.Login(cfgStore.SerializedAccountData);
@@ -414,6 +423,7 @@ namespace Altairis.AutoAcme.Manager {
                         Trace.WriteLine(string.Empty);
                         Trace.WriteLine(ex);
                     }
+                    CrashExit("Unable to login or create account.");
                 }
 
                 // Renew them

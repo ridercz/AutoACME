@@ -82,6 +82,7 @@ namespace Altairis.AutoAcme.IisSync {
                     // Login to Let's Encrypt service
                     if (string.IsNullOrEmpty(cfgStore.SerializedAccountData)) {
                         cfgStore.SerializedAccountData = ac.RegisterAndLogin(cfgStore.EmailAddress);
+                        SaveConfig(cfgFileName);
                     }
                     else {
                         ac.Login(cfgStore.SerializedAccountData);
