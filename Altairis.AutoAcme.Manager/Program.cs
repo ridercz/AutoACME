@@ -6,7 +6,6 @@ using System.Linq;
 using System.Text;
 using Altairis.AutoAcme.Configuration;
 using Altairis.AutoAcme.Core;
-using Certes.Acme;
 using NConsoler;
 
 namespace Altairis.AutoAcme.Manager {
@@ -14,6 +13,8 @@ namespace Altairis.AutoAcme.Manager {
         private const int ERRORLEVEL_SUCCESS = 0;
         private const int ERRORLEVEL_FAILURE = 1;
         private const string DEFAULT_CONFIG_NAME = "autoacme.json";
+        private static readonly Uri DEFAULT_SERVER_URL = new Uri("https://acme-v01.api.letsencrypt.org/directory");
+        private static readonly Uri STAGING_SERVER_URL = new Uri("https://acme-staging.api.letsencrypt.org/directory");
 
         private static bool verboseMode;
         private static Store cfgStore;
@@ -112,10 +113,10 @@ namespace Altairis.AutoAcme.Manager {
                 Console.Write("> ");
                 var acmeServer = Console.ReadLine();
                 if (string.IsNullOrWhiteSpace(acmeServer)) {
-                    cfgStore.ServerUri = WellKnownServers.LetsEncrypt;
+                    cfgStore.ServerUri = DEFAULT_SERVER_URL;
                 }
                 else if (acmeServer.Trim().Equals("staging", StringComparison.OrdinalIgnoreCase)) {
-                    cfgStore.ServerUri = WellKnownServers.LetsEncryptStaging;
+                    cfgStore.ServerUri = STAGING_SERVER_URL;
                 }
                 else {
                     cfgStore.ServerUri = new Uri(acmeServer);
@@ -388,74 +389,85 @@ namespace Altairis.AutoAcme.Manager {
             }
             Trace.WriteLine($"OK, {expiringHosts.Count()} hosts to renew");
 
-            // Renew them
-            Trace.Indent();
-            foreach (var item in expiringHosts) {
-                var dte = Math.Floor(item.NotAfter.Subtract(DateTime.Now).TotalDays);
-                if (dte < 0) {
-                    Trace.WriteLine($"Host {item.CommonName} expired {-dte} days ago ({item.NotAfter:D})");
-                }
-                else {
-                    Trace.WriteLine($"Host {item.CommonName} expires in {dte} days ({item.NotAfter:D})");
-                }
-
-                if (whatIf) continue;
-                Trace.Indent();
-
-                // Request certificate
-                CertificateRequestResult result = null;
+            using (var ac = new AcmeContext(cfgStore.ServerUri)) {
                 try {
-                    using (var ac = new AcmeContext(cfgStore.ServerUri)) {
-                        ac.ChallengeVerificationRetryCount = cfgStore.ChallengeVerificationRetryCount;
-                        ac.ChallengeVerificationWait = TimeSpan.FromSeconds(cfgStore.ChallengeVerificationWaitSeconds);
-                        ac.Login(cfgStore.EmailAddress);
+                    ac.ChallengeVerificationRetryCount = cfgStore.ChallengeVerificationRetryCount;
+                    ac.ChallengeVerificationWait = TimeSpan.FromSeconds(cfgStore.ChallengeVerificationWaitSeconds);
+                    ac.Login(cfgStore.EmailAddress);
+                }
+                catch (Exception ex) {
+                    Trace.WriteLine($"Login failed: {ex.Message}");
+                    if (verboseMode) {
+                        Trace.WriteLine(string.Empty);
+                        Trace.WriteLine(ex);
+                    }
+                }
+
+                // Renew them
+                Trace.Indent();
+                foreach (var item in expiringHosts) {
+                    var dte = Math.Floor(item.NotAfter.Subtract(DateTime.Now).TotalDays);
+                    if (dte < 0) {
+                        Trace.WriteLine($"Host {item.CommonName} expired {-dte} days ago ({item.NotAfter:D})");
+                    }
+                    else {
+                        Trace.WriteLine($"Host {item.CommonName} expires in {dte} days ({item.NotAfter:D})");
+                    }
+
+                    if (whatIf) continue;
+                    Trace.Indent();
+
+                    // Request certificate
+                    CertificateRequestResult result = null;
+                    try {
                         result = ac.GetCertificate(
                             hostName: item.CommonName,
                             pfxPassword: cfgStore.PfxPassword,
                             challengeCallback: CreateChallenge,
                             cleanupCallback: CleanupChallenge,
                             skipTest: skipTest);
+
                     }
-                }
-                catch (Exception ex) {
-                    Trace.WriteLine($"Renewal failed: {ex.Message}");
-                    if (verboseMode) {
-                        Trace.WriteLine(string.Empty);
-                        Trace.WriteLine(ex);
+                    catch (Exception ex) {
+                        Trace.WriteLine($"Renewal failed: {ex.Message}");
+                        if (verboseMode) {
+                            Trace.WriteLine(string.Empty);
+                            Trace.WriteLine(ex);
+                        }
                     }
-                }
-                if (result != null) {
-                    // Display certificate info
-                    Trace.Indent();
-                    Trace.WriteLine("Certificate information:");
-                    Trace.WriteLine($"Issuer:        {result.Certificate.Issuer}");
-                    Trace.WriteLine($"Subject:       {result.Certificate.Subject}");
-                    Trace.WriteLine($"Serial number: {result.Certificate.SerialNumber}");
-                    Trace.WriteLine($"Not before:    {result.Certificate.NotBefore:o}");
-                    Trace.WriteLine($"Not after:     {result.Certificate.NotAfter:o}");
-                    Trace.WriteLine($"Thumbprint:    {result.Certificate.Thumbprint}");
+                    if (result != null) {
+                        // Display certificate info
+                        Trace.Indent();
+                        Trace.WriteLine("Certificate information:");
+                        Trace.WriteLine($"Issuer:        {result.Certificate.Issuer}");
+                        Trace.WriteLine($"Subject:       {result.Certificate.Subject}");
+                        Trace.WriteLine($"Serial number: {result.Certificate.SerialNumber}");
+                        Trace.WriteLine($"Not before:    {result.Certificate.NotBefore:o}");
+                        Trace.WriteLine($"Not after:     {result.Certificate.NotAfter:o}");
+                        Trace.WriteLine($"Thumbprint:    {result.Certificate.Thumbprint}");
+                        Trace.Unindent();
+
+                        // Export files
+                        Trace.WriteLine("Exporting files:");
+                        Trace.Indent();
+                        result.Export(item.CommonName, cfgStore.PfxFolder, cfgStore.PemFolder);
+                        Trace.Unindent();
+
+                        // Update database entry
+                        Trace.Write("Updating database entry...");
+                        item.NotBefore = result.Certificate.NotBefore;
+                        item.NotAfter = result.Certificate.NotAfter;
+                        item.SerialNumber = result.Certificate.SerialNumber;
+                        item.Thumbprint = result.Certificate.Thumbprint;
+                        Trace.WriteLine("OK");
+
+                        // Save configuration
+                        SaveConfig(cfgFileName);
+                    }
                     Trace.Unindent();
-
-                    // Export files
-                    Trace.WriteLine("Exporting files:");
-                    Trace.Indent();
-                    result.Export(item.CommonName, cfgStore.PfxFolder, cfgStore.PemFolder);
-                    Trace.Unindent();
-
-                    // Update database entry
-                    Trace.Write("Updating database entry...");
-                    item.NotBefore = result.Certificate.NotBefore;
-                    item.NotAfter = result.Certificate.NotAfter;
-                    item.SerialNumber = result.Certificate.SerialNumber;
-                    item.Thumbprint = result.Certificate.Thumbprint;
-                    Trace.WriteLine("OK");
-
-                    // Save configuration
-                    SaveConfig(cfgFileName);
                 }
                 Trace.Unindent();
             }
-            Trace.Unindent();
         }
 
         [Action("Combines 'renew' and 'purge'.")]
