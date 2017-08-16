@@ -251,4 +251,5 @@ paket-files/
 .idea/
 *.sln.iml
 /Deploy/*.zip
+/Deploy/*.exe
 /Deploy/Distribution
