@@ -1,9 +1,15 @@
 @ECHO OFF
 
 SET SIGNTOOL="C:\Program Files (x86)\Microsoft SDKs\ClickOnce\SignTool\signtool.exe"
+IF NOT EXIST %SIGNTOOL% (
+	ECHO This program requires SignTool installed at %SEVENZ%
+	ECHO The SignTool is part of Windows SDK
+	EXIT /B
+)
 
-IF NOT EXIST "C:\Program Files\7-Zip\7z.exe" (
-	ECHO This program requires 7-Zip installed in default path C:\Program Files\7-Zip\7z.exe
+SET SEVENZ="C:\Program Files\7-Zip\7z.exe"
+IF NOT EXIST %SEVENZ% (
+	ECHO This program requires 7-Zip installed at %SEVENZ%
 	ECHO You may get it at http://www.7-zip.org/
 	EXIT /B
 )
@@ -38,6 +44,6 @@ ECHO Digitally signing EXE files...
 
 ECHO Making ZIP file...
 CD Distribution
-"C:\Program Files\7-Zip\7z.exe" a ..\AutoACME.zip *
+%SEVENZ% a ..\AutoACME.zip *
 CD ..
 
