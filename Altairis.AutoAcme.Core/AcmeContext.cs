@@ -133,7 +133,7 @@ namespace Altairis.AutoAcme.Core {
                 Trace.WriteLine("Testing HTTPS challenge:");
                 Trace.Indent();
                 var httpsUri = $"https://{hostName}/.well-known/acme-challenge/{challengeName}";
-                result = CompareTestChallenge(httpUri, challengeValue);
+                result = CompareTestChallenge(httpsUri, challengeValue);
                 Trace.Unindent();
             }
 
