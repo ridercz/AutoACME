@@ -1,0 +1,15 @@
+root = true
+[*]
+# Most of the standard EditorConfig properties are supported
+indent_size=4
+indent_style=tabs
+max_line_length=100
+
+resharper_csharp_brace_style=end_of_line
+resharper_csharp_allow_comment_after_lbrace=true
+resharper_csharp_blank_lines_after_block_statements=0
+resharper_csharp_blank_lines_around_invocable=1
+resharper_csharp_place_abstract_accessorholder_on_single_line=true
+resharper_csharp_place_simple_accessor_on_single_line=true
+resharper_csharp_place_simple_anonymousmethod_on_single_line=true
+resharper_csharp_place_simple_method_on_single_line=true
