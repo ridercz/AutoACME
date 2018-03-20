@@ -87,6 +87,7 @@
     <Compile Include="AcmeEnvironment.cs" />
     <Compile Include="CertificateRequestResult.cs" />
     <Compile Include="ChallengeFile.cs" />
+    <Compile Include="ChallengeHosted.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

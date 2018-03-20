@@ -3,7 +3,7 @@ root = true
 # Most of the standard EditorConfig properties are supported
 indent_size=4
 indent_style=tabs
-max_line_length=100
+max_line_length=200
 
 resharper_csharp_brace_style=end_of_line
 resharper_csharp_allow_comment_after_lbrace=true
