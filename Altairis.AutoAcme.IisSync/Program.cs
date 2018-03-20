@@ -11,13 +11,6 @@ using NConsoler;
 
 namespace Altairis.AutoAcme.IisSync {
     class Program {
-        private const int ERRORLEVEL_SUCCESS = 0;
-        private const int ERRORLEVEL_FAILURE = 1;
-        private const string DEFAULT_CONFIG_NAME = "autoacme.json";
-
-        private static bool verboseMode;
-        private static Store cfgStore;
-
         static void Main(string[] args) {
             Trace.Listeners.Add(new ConsoleTraceListener());
             Trace.IndentSize = 2;
@@ -37,11 +30,10 @@ namespace Altairis.AutoAcme.IisSync {
             [Optional(false, "ccs", Description = "Add CCS binding to hosts without one and add them as well")] bool addCcsBinding,
             [Optional(false, "sni", Description = "Require SNI for newly created bindings")] bool requireSni,
             [Optional("localhost", "s", Description = "IIS server name")] string serverName,
-            [Optional(DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string cfgFileName,
+            [Optional(AcmeEnvironment.DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
-
-            verboseMode = verbose;
-            LoadConfig(cfgFileName);
+            AcmeEnvironment.verboseMode = verbose;
+            AcmeEnvironment.LoadConfig(cfgFileName);
 
             using (var sc = new ServerContext(serverName)) {
                 IEnumerable<BindingInfo> bindings = null;
@@ -51,7 +43,7 @@ namespace Altairis.AutoAcme.IisSync {
                     bindings = sc.GetBindings();
                 }
                 catch (Exception ex) {
-                    CrashExit(ex);
+                    AcmeEnvironment.CrashExit(ex);
                 }
 
                 // Get only bindings matching the following criteria
@@ -68,31 +60,31 @@ namespace Altairis.AutoAcme.IisSync {
 
                 // Find new hosts
                 Trace.Write("Finding new hosts to add...");
-                bindings = bindings.Where(x => !cfgStore.Hosts.Any(h => h.CommonName.Equals(x.Host)));
+                bindings = bindings.Where(x => !AcmeEnvironment.CfgStore.Hosts.Any(h => h.CommonName.Equals(x.Host)));
                 if (!bindings.Any()) {
                     Trace.WriteLine("None");
                     return;
                 }
                 Trace.WriteLine($"OK");
 
-                using (var ac = new AcmeContext(cfgStore.ServerUri)) {
-                    ac.ChallengeVerificationRetryCount = cfgStore.ChallengeVerificationRetryCount;
-                    ac.ChallengeVerificationWait = TimeSpan.FromSeconds(cfgStore.ChallengeVerificationWaitSeconds);
+                using (var ac = new AcmeContext(AcmeEnvironment.CfgStore.ServerUri)) {
+                    ac.ChallengeVerificationRetryCount = AcmeEnvironment.CfgStore.ChallengeVerificationRetryCount;
+                    ac.ChallengeVerificationWait = TimeSpan.FromSeconds(AcmeEnvironment.CfgStore.ChallengeVerificationWaitSeconds);
 
                     // Login to Let's Encrypt service
-                    if (string.IsNullOrEmpty(cfgStore.SerializedAccountData)) {
-                        cfgStore.SerializedAccountData = ac.RegisterAndLogin(cfgStore.EmailAddress);
-                        SaveConfig(cfgFileName);
+                    if (string.IsNullOrEmpty(AcmeEnvironment.CfgStore.SerializedAccountData)) {
+                        AcmeEnvironment.CfgStore.SerializedAccountData = ac.RegisterAndLogin(AcmeEnvironment.CfgStore.EmailAddress);
+                        AcmeEnvironment.SaveConfig(cfgFileName);
                     }
                     else {
-                        ac.Login(cfgStore.SerializedAccountData);
+                        ac.Login(AcmeEnvironment.CfgStore.SerializedAccountData);
                     }
 
                     // Add new hosts
                     Trace.Indent();
                     foreach (var binding in bindings.ToArray()) {
                         // Check if was already added before
-                        if (cfgStore.Hosts.Any(h => h.CommonName.Equals(binding.Host, StringComparison.OrdinalIgnoreCase))) continue;
+                        if (AcmeEnvironment.CfgStore.Hosts.Any(h => h.CommonName.Equals(binding.Host, StringComparison.OrdinalIgnoreCase))) continue;
 
                         Trace.WriteLine($"Adding new host {binding.Host}:");
                         Trace.Indent();
@@ -102,13 +94,13 @@ namespace Altairis.AutoAcme.IisSync {
                         try {
                             result = ac.GetCertificate(
                                 hostName: binding.Host,
-                                pfxPassword: cfgStore.PfxPassword,
-                                challengeCallback: CreateChallenge,
-                                cleanupCallback: CleanupChallenge);
+                                pfxPassword: AcmeEnvironment.CfgStore.PfxPassword,
+                                challengeCallback: AcmeEnvironment.CreateChallenge,
+                                cleanupCallback: AcmeEnvironment.CleanupChallenge);
                         }
                         catch (Exception ex) {
                             Trace.WriteLine($"Request failed: {ex.Message}");
-                            if (verboseMode) {
+                            if (AcmeEnvironment.verboseMode) {
                                 Trace.WriteLine(string.Empty);
                                 Trace.WriteLine(ex);
                             }
@@ -119,12 +111,12 @@ namespace Altairis.AutoAcme.IisSync {
                         // Export files
                         Trace.WriteLine("Exporting files:");
                         Trace.Indent();
-                        result.Export(binding.Host, cfgStore.PfxFolder, cfgStore.PemFolder);
+                        result.Export(binding.Host, AcmeEnvironment.CfgStore.PfxFolder, AcmeEnvironment.CfgStore.PemFolder);
                         Trace.Unindent();
 
                         // Update database entry
                         Trace.Write("Updating database entry...");
-                        cfgStore.Hosts.Add(new Host {
+                        AcmeEnvironment.CfgStore.Hosts.Add(new Host {
                             CommonName = binding.Host,
                             NotBefore = result.Certificate.NotBefore,
                             NotAfter = result.Certificate.NotAfter,
@@ -132,7 +124,7 @@ namespace Altairis.AutoAcme.IisSync {
                             Thumbprint = result.Certificate.Thumbprint
                         });
                         Trace.WriteLine("OK");
-                        SaveConfig(cfgFileName);
+                        AcmeEnvironment.SaveConfig(cfgFileName);
 
                         // Add HTTPS + CCS binding
                         var alreadyHasHttpsWithCcs = bindings.Any(b =>
@@ -146,7 +138,7 @@ namespace Altairis.AutoAcme.IisSync {
                                 Trace.WriteLine("OK");
                             }
                             catch (Exception ex) {
-                                CrashExit(ex);
+                                AcmeEnvironment.CrashExit(ex);
                             }
                         }
 
@@ -163,8 +155,7 @@ namespace Altairis.AutoAcme.IisSync {
             [Optional(false, "sni", Description = "Require SNI for newly created binding")] bool requireSni,
             [Optional("localhost", "s", Description = "IIS server name")] string serverName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
-
-            verboseMode = verbose;
+            AcmeEnvironment.verboseMode = verbose;
             hostName = hostName.Trim().ToLower();
 
             using (var sc = new ServerContext(serverName)) {
@@ -175,12 +166,14 @@ namespace Altairis.AutoAcme.IisSync {
 
                     Trace.Write($"Checking for already existing HTTPS binding for {hostName}...");
                     var exists = bindings.Any(x => x.Host.Equals(hostName, StringComparison.OrdinalIgnoreCase) && x.Protocol.Equals("https", StringComparison.OrdinalIgnoreCase));
-                    if (exists) CrashExit("Binding already exists");
+                    if (exists)
+                        AcmeEnvironment.CrashExit("Binding already exists");
                     Trace.WriteLine("OK");
 
                     Trace.Write("Getting site...");
                     var site = bindings.FirstOrDefault(x => x.Host.Equals(hostName, StringComparison.OrdinalIgnoreCase) && x.Protocol.Equals("http", StringComparison.OrdinalIgnoreCase));
-                    if (site == null) CrashExit("HTTP binding not found");
+                    if (site == null)
+                        AcmeEnvironment.CrashExit("HTTP binding not found");
                     Trace.WriteLine($"OK, found site '{site.SiteName}', ID {site.SiteId}");
 
                     Trace.Write("Adding new binding...");
@@ -189,7 +182,7 @@ namespace Altairis.AutoAcme.IisSync {
 
                 }
                 catch (Exception ex) {
-                    CrashExit(ex);
+                    AcmeEnvironment.CrashExit(ex);
                 }
             }
 
@@ -202,8 +195,7 @@ namespace Altairis.AutoAcme.IisSync {
             [Optional("TAB", "cs", Description = "Column separator")] string columnSeparator,
             [Optional("localhost", "s", Description = "IIS server name")] string serverName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
-
-            verboseMode = verbose;
+            AcmeEnvironment.verboseMode = verbose;
             if (columnSeparator.Equals("TAB", StringComparison.OrdinalIgnoreCase)) columnSeparator = "\t";
 
             try {
@@ -249,91 +241,10 @@ namespace Altairis.AutoAcme.IisSync {
                 }
             }
             catch (Exception ex) {
-                CrashExit(ex);
+                AcmeEnvironment.CrashExit(ex);
             }
         }
 
         // Helper methods
-
-        private static void CreateChallenge(string tokenId, string authString) {
-            if (tokenId == null) throw new ArgumentNullException(nameof(tokenId));
-            if (string.IsNullOrWhiteSpace(tokenId)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(tokenId));
-            if (authString == null) throw new ArgumentNullException(nameof(authString));
-            if (string.IsNullOrWhiteSpace(authString)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(authString));
-
-            var fileName = Path.Combine(cfgStore.ChallengeFolder, tokenId);
-            try {
-                Trace.Write($"Writing challenge to {fileName}...");
-                File.WriteAllText(fileName, authString);
-                Trace.WriteLine("OK");
-            }
-            catch (Exception ex) {
-                CrashExit(ex);
-            }
-        }
-
-        private static void CleanupChallenge(string tokenId) {
-            var fileName = Path.Combine(cfgStore.ChallengeFolder, tokenId);
-            if (!File.Exists(fileName)) return;
-            try {
-                Trace.Write($"Deleting challenge from {fileName}...");
-                File.Delete(fileName);
-                Trace.WriteLine("OK");
-            }
-            catch (Exception ex) {
-                Trace.WriteLine("Warning!");
-                Trace.WriteLine(ex.Message);
-                if (verboseMode) {
-                    Trace.WriteLine(string.Empty);
-                    Trace.WriteLine(ex);
-                }
-            }
-        }
-
-        private static void LoadConfig(string cfgFileName) {
-            if (string.IsNullOrWhiteSpace(cfgFileName)) {
-                cfgFileName = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), DEFAULT_CONFIG_NAME);
-            }
-
-            try {
-                Trace.Write($"Reading configuration from '{cfgFileName}'...");
-                cfgStore = Store.Load(cfgFileName);
-                Trace.WriteLine("OK");
-            }
-            catch (Exception ex) {
-                CrashExit(ex);
-            }
-        }
-
-        private static void SaveConfig(string cfgFileName) {
-            if (string.IsNullOrWhiteSpace(cfgFileName)) {
-                cfgFileName = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), DEFAULT_CONFIG_NAME);
-            }
-
-            try {
-                Trace.Write($"Saving configuration to '{cfgFileName}'...");
-                cfgStore.Save(cfgFileName);
-                Trace.WriteLine("OK");
-            }
-            catch (Exception ex) {
-                CrashExit(ex);
-            }
-        }
-
-        private static void CrashExit(string message) {
-            Trace.WriteLine("Failed!");
-            Trace.WriteLine(message);
-            Environment.Exit(ERRORLEVEL_FAILURE);
-        }
-
-        private static void CrashExit(Exception ex) {
-            Trace.WriteLine("Failed!");
-            Trace.WriteLine(ex.Message);
-            if (verboseMode) {
-                Trace.WriteLine(string.Empty);
-                Trace.WriteLine(ex);
-            }
-            Environment.Exit(ERRORLEVEL_FAILURE);
-        }
     }
 }
