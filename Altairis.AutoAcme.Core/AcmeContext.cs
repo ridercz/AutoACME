@@ -60,7 +60,7 @@ namespace Altairis.AutoAcme.Core {
             this.LoginAsync(serializedAccountData).GetAwaiter().GetResult();
         }
 
-        public async Task<CertificateRequestResult> GetCertificateAsync(string hostName, string pfxPassword, Action<string, string> challengeCallback, Action<string> cleanupCallback, bool skipTest = false) {
+        public async Task<CertificateRequestResult> GetCertificateAsync(string hostName, string pfxPassword, Func<string, string, IDisposable> challengeCallback, Action<IDisposable> cleanupCallback, bool skipTest = false) {
             if (hostName == null) throw new ArgumentNullException(nameof(hostName));
             if (string.IsNullOrWhiteSpace(hostName)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(hostName));
             if (challengeCallback == null) throw new ArgumentNullException(nameof(challengeCallback));
@@ -107,19 +107,19 @@ namespace Altairis.AutoAcme.Core {
             };
         }
 
-        public CertificateRequestResult GetCertificate(string hostName, string pfxPassword, Action<string, string> challengeCallback, Action<string> cleanupCallback, bool skipTest = false) {
+        public CertificateRequestResult GetCertificate(string hostName, string pfxPassword, Func<string, string, IDisposable> challengeCallback, Action<IDisposable> cleanupCallback, bool skipTest = false) {
             return this.GetCertificateAsync(hostName, pfxPassword, challengeCallback, cleanupCallback, skipTest).Result;
         }
 
         // Helper methods
 
-        public static bool TestAuthorization(string hostName, Action<string, string> challengeCallback, Action<string> cleanupCallback) {
+        public static bool TestAuthorization(string hostName, Func<string, string, IDisposable> challengeCallback, Action<IDisposable> cleanupCallback) {
             // Create test challenge name and value
             var challengeName = "probe_" + Guid.NewGuid().ToString();
             var challengeValue = Guid.NewGuid().ToString();
 
             // Create test challenge file
-            challengeCallback(challengeName, challengeValue);
+            var challenge = challengeCallback(challengeName, challengeValue);
 
             // Try to access the file via HTTP
             Trace.WriteLine("Testing HTTP challenge:");
@@ -138,7 +138,7 @@ namespace Altairis.AutoAcme.Core {
             }
 
             // Cleanup
-            cleanupCallback(challengeName);
+            cleanupCallback(challenge);
 
             return result;
         }
@@ -215,7 +215,7 @@ namespace Altairis.AutoAcme.Core {
             return result;
         }
 
-        private async Task<string> GetAuthorization(string hostName, Action<string, string> challengeCallback, Action<string> cleanupCallback) {
+        private async Task<string> GetAuthorization(string hostName, Func<string, string, IDisposable> challengeCallback, Action<IDisposable> cleanupCallback) {
             // Create authorization request
             Trace.Write("Creating authorization request...");
             var ar = await this.client.NewAuthorization(new AuthorizationIdentifier {
@@ -233,7 +233,7 @@ namespace Altairis.AutoAcme.Core {
             Trace.WriteLine(ch.Uri);
 
             // Wait for challenge callback to complete
-            challengeCallback(ch.Token, keyAuthString);
+            var challenge = challengeCallback(ch.Token, keyAuthString);
 
             // Complete challenge
             Trace.Write("Completing challenge...");
@@ -261,7 +261,7 @@ namespace Altairis.AutoAcme.Core {
             }
 
             // Clean up challenge
-            cleanupCallback(ch.Token);
+            cleanupCallback(challenge);
 
             return ar.Data.Status;
         }
