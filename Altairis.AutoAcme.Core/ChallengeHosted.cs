@@ -18,7 +18,7 @@ namespace Altairis.AutoAcme.Core {
             listener.Prefixes.Add(urlPrefix);
             listener.Start();
             Trace.WriteLine("Listening on " + urlPrefix);
-            listener.GetContextAsync().ContinueWith(HandleRequest, TaskContinuationOptions.NotOnCanceled);
+            listener.GetContextAsync().ContinueWith(HandleRequest, TaskContinuationOptions.OnlyOnRanToCompletion);
         }
 
         public void Dispose() {
@@ -32,12 +32,7 @@ namespace Altairis.AutoAcme.Core {
         }
 
         private void HandleRequest(Task<HttpListenerContext> task) {
-            if (task.IsFaulted) {
-                Dispose();
-                AcmeEnvironment.CrashExit(task.Exception);
-                return;
-            }
-            listener.GetContextAsync().ContinueWith(HandleRequest, TaskContinuationOptions.NotOnCanceled);
+            listener.GetContextAsync().ContinueWith(HandleRequest, TaskContinuationOptions.OnlyOnRanToCompletion);
             var request = task.Result.Request;
             var response = task.Result.Response;
             Trace.WriteLine("Handling request from " + request.RemoteEndPoint.Address);

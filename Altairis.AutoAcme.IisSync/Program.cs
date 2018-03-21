@@ -32,7 +32,7 @@ namespace Altairis.AutoAcme.IisSync {
             [Optional("localhost", "s", Description = "IIS server name")] string serverName,
             [Optional(AcmeEnvironment.DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
-            AcmeEnvironment.verboseMode = verbose;
+            AcmeEnvironment.VerboseMode = verbose;
             AcmeEnvironment.LoadConfig(cfgFileName);
 
             using (var sc = new ServerContext(serverName)) {
@@ -100,7 +100,7 @@ namespace Altairis.AutoAcme.IisSync {
                         }
                         catch (Exception ex) {
                             Trace.WriteLine($"Request failed: {ex.Message}");
-                            if (AcmeEnvironment.verboseMode) {
+                            if (AcmeEnvironment.VerboseMode) {
                                 Trace.WriteLine(string.Empty);
                                 Trace.WriteLine(ex);
                             }
@@ -155,7 +155,7 @@ namespace Altairis.AutoAcme.IisSync {
             [Optional(false, "sni", Description = "Require SNI for newly created binding")] bool requireSni,
             [Optional("localhost", "s", Description = "IIS server name")] string serverName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
-            AcmeEnvironment.verboseMode = verbose;
+            AcmeEnvironment.VerboseMode = verbose;
             hostName = hostName.Trim().ToLower();
 
             using (var sc = new ServerContext(serverName)) {
@@ -195,7 +195,7 @@ namespace Altairis.AutoAcme.IisSync {
             [Optional("TAB", "cs", Description = "Column separator")] string columnSeparator,
             [Optional("localhost", "s", Description = "IIS server name")] string serverName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
-            AcmeEnvironment.verboseMode = verbose;
+            AcmeEnvironment.VerboseMode = verbose;
             if (columnSeparator.Equals("TAB", StringComparison.OrdinalIgnoreCase)) columnSeparator = "\t";
 
             try {

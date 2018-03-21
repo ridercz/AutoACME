@@ -10,7 +10,7 @@ namespace Altairis.AutoAcme.Core {
         private const int ERRORLEVEL_SUCCESS = 0;
         private const int ERRORLEVEL_FAILURE = 1;
         public const string DEFAULT_CONFIG_NAME = "autoacme.json";
-        public static bool verboseMode;
+        public static bool VerboseMode;
         public static Store CfgStore;
 
         public static IDisposable CreateChallenge(string tokenId, string authString) {
@@ -38,7 +38,7 @@ namespace Altairis.AutoAcme.Core {
                 catch (Exception ex) {
                     Trace.WriteLine("Warning!");
                     Trace.WriteLine(ex.Message);
-                    if (verboseMode) {
+                    if (VerboseMode) {
                         Trace.WriteLine(String.Empty);
                         Trace.WriteLine(ex);
                     }
@@ -48,7 +48,7 @@ namespace Altairis.AutoAcme.Core {
 
         public static void LoadConfig(string cfgFileName) {
             if (String.IsNullOrWhiteSpace(cfgFileName)) {
-                cfgFileName = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), DEFAULT_CONFIG_NAME);
+                cfgFileName = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), DEFAULT_CONFIG_NAME);
             }
             try {
                 Trace.Write($"Reading configuration from '{cfgFileName}'...");
@@ -62,7 +62,7 @@ namespace Altairis.AutoAcme.Core {
 
         public static void SaveConfig(string cfgFileName) {
             if (String.IsNullOrWhiteSpace(cfgFileName)) {
-                cfgFileName = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), DEFAULT_CONFIG_NAME);
+                cfgFileName = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), DEFAULT_CONFIG_NAME);
             }
             try {
                 Trace.Write($"Saving configuration to '{cfgFileName}'...");
@@ -83,7 +83,7 @@ namespace Altairis.AutoAcme.Core {
         public static void CrashExit(Exception ex) {
             Trace.WriteLine("Failed!");
             Trace.WriteLine(ex.Message);
-            if (verboseMode) {
+            if (VerboseMode) {
                 Trace.WriteLine(String.Empty);
                 Trace.WriteLine(ex);
             }

@@ -30,7 +30,7 @@ namespace Altairis.AutoAcme.Manager {
         [Optional(null, "cfg", Description = "Custom configuration file name")] string cfgFileName,
         [Optional(false, "y", Description = "Overwrite existing file")] bool overwrite,
         [Optional(false, Description = "Show verbose error messages")] bool verbose) {
-            AcmeEnvironment.verboseMode = verbose;
+            AcmeEnvironment.VerboseMode = verbose;
             if (AcmeEnvironment.CfgStore == null)
                 AcmeEnvironment.LoadConfig(cfgFileName);
 
@@ -60,7 +60,7 @@ namespace Altairis.AutoAcme.Manager {
             [Optional(null, "cfg", Description = "Custom configuration file name")] string cfgFileName,
             [Optional(false, "y", Description = "Overwrite existing file")] bool overwrite,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
-            AcmeEnvironment.verboseMode = verbose;
+            AcmeEnvironment.VerboseMode = verbose;
 
             // Check if config file already exists
             if (!overwrite && File.Exists(cfgFileName))
@@ -148,7 +148,7 @@ namespace Altairis.AutoAcme.Manager {
             [Required(Description = "Host name")] string hostName,
             [Optional(null, "cfg", Description = "Custom configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
-            AcmeEnvironment.verboseMode = verbose;
+            AcmeEnvironment.VerboseMode = verbose;
             if (AcmeEnvironment.CfgStore == null)
                 AcmeEnvironment.LoadConfig(cfgFileName);
             hostName = hostName.Trim().ToLower();
@@ -171,7 +171,7 @@ namespace Altairis.AutoAcme.Manager {
             [Optional(false, "xt", Description = "Skip authentication test")] bool skipTest,
             [Optional(null, "cfg", Description = "Custom configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
-            AcmeEnvironment.verboseMode = verbose;
+            AcmeEnvironment.VerboseMode = verbose;
             if (AcmeEnvironment.CfgStore == null)
                 AcmeEnvironment.LoadConfig(cfgFileName);
             hostName = hostName.Trim().ToLower();
@@ -209,7 +209,7 @@ namespace Altairis.AutoAcme.Manager {
             }
             catch (Exception ex) {
                 Trace.WriteLine($"Request failed: {ex.Message}");
-                if (AcmeEnvironment.verboseMode) {
+                if (AcmeEnvironment.VerboseMode) {
                     Trace.WriteLine(string.Empty);
                     Trace.WriteLine(ex);
                 }
@@ -256,7 +256,7 @@ namespace Altairis.AutoAcme.Manager {
             [Required(Description = "Host name")] string hostName,
             [Optional(null, "cfg", Description = "Custom configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
-            AcmeEnvironment.verboseMode = verbose;
+            AcmeEnvironment.VerboseMode = verbose;
             if (AcmeEnvironment.CfgStore == null)
                 AcmeEnvironment.LoadConfig(cfgFileName);
             hostName = hostName.Trim().ToLower();
@@ -291,7 +291,7 @@ namespace Altairis.AutoAcme.Manager {
             [Optional("o", "df", Description = "Date format string")] string dateFormat,
             [Optional(null, "cfg", Description = "Custom configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
-            AcmeEnvironment.verboseMode = verbose;
+            AcmeEnvironment.VerboseMode = verbose;
             if (columnSeparator.Equals("TAB", StringComparison.OrdinalIgnoreCase)) columnSeparator = "\t";
             if (AcmeEnvironment.CfgStore == null)
                 AcmeEnvironment.LoadConfig(cfgFileName);
@@ -340,7 +340,7 @@ namespace Altairis.AutoAcme.Manager {
             [Optional(false, "wi", Description = "What if - only show hosts to be purged")] bool whatIf,
             [Optional(null, "cfg", Description = "Custom configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
-            AcmeEnvironment.verboseMode = verbose;
+            AcmeEnvironment.VerboseMode = verbose;
             if (AcmeEnvironment.CfgStore == null)
                 AcmeEnvironment.LoadConfig(cfgFileName);
 
@@ -387,7 +387,7 @@ namespace Altairis.AutoAcme.Manager {
             [Optional(false, "wi", Description = "What if - only show hosts to be renewed")] bool whatIf,
             [Optional(null, "cfg", Description = "Custom configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
-            AcmeEnvironment.verboseMode = verbose;
+            AcmeEnvironment.VerboseMode = verbose;
             if (AcmeEnvironment.CfgStore == null)
                 AcmeEnvironment.LoadConfig(cfgFileName);
 
@@ -417,7 +417,7 @@ namespace Altairis.AutoAcme.Manager {
                 }
                 catch (Exception ex) {
                     Trace.WriteLine($"Login failed: {ex.Message}");
-                    if (AcmeEnvironment.verboseMode) {
+                    if (AcmeEnvironment.VerboseMode) {
                         Trace.WriteLine(string.Empty);
                         Trace.WriteLine(ex);
                     }
@@ -455,7 +455,7 @@ namespace Altairis.AutoAcme.Manager {
                     }
                     catch (Exception ex) {
                         Trace.WriteLine($"Renewal failed: {ex.Message}");
-                        if (AcmeEnvironment.verboseMode) {
+                        if (AcmeEnvironment.VerboseMode) {
                             Trace.WriteLine(string.Empty);
                             Trace.WriteLine(ex);
                         }
@@ -531,7 +531,7 @@ namespace Altairis.AutoAcme.Manager {
                     Trace.WriteLine("Warning!");
                     Trace.WriteLine(ex.Message);
 
-                    if (AcmeEnvironment.verboseMode) {
+                    if (AcmeEnvironment.VerboseMode) {
                         Trace.WriteLine(string.Empty);
                         Trace.WriteLine(ex);
                     }
@@ -552,7 +552,7 @@ namespace Altairis.AutoAcme.Manager {
             catch (Exception ex) {
                 Trace.WriteLine("Failed!");
                 Trace.WriteLine(ex.Message);
-                if (AcmeEnvironment.verboseMode) {
+                if (AcmeEnvironment.VerboseMode) {
                     Trace.WriteLine(string.Empty);
                     Trace.WriteLine(ex);
                 }
