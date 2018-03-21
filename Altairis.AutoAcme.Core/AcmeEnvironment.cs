@@ -20,7 +20,7 @@ namespace Altairis.AutoAcme.Core {
             if (String.IsNullOrWhiteSpace(authString)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(authString));
             try {
                 if (CfgStore.SelfHostChallenge) {
-                    return new ChallengeHosted(tokenId, authString);
+                    return new ChallengeHosted(CfgStore.SelfHostUrlPrefix, tokenId, authString);
                 }
                 return new ChallengeFile(Path.Combine(CfgStore.ChallengeFolder, tokenId), authString);
             }

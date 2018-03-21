@@ -6,19 +6,18 @@ using System.Threading.Tasks;
 
 namespace Altairis.AutoAcme.Core {
     public class ChallengeHosted: IDisposable {
-        private const string URI_PREFIX = "http://+:80/Temporary_Listen_Addresses/AutoACME/";
         private readonly string tokenId;
         private readonly string authString;
         private readonly HttpListener listener;
         private bool disposed;
 
-        public ChallengeHosted(string tokenId, string authString) {
+        public ChallengeHosted(string urlPrefix, string tokenId, string authString) {
             this.tokenId = tokenId;
             this.authString = authString;
             listener = new HttpListener();
-            listener.Prefixes.Add(URI_PREFIX);
+            listener.Prefixes.Add(urlPrefix);
             listener.Start();
-            Trace.WriteLine("Listening on " + URI_PREFIX);
+            Trace.WriteLine("Listening on " + urlPrefix);
             listener.GetContextAsync().ContinueWith(HandleRequest, TaskContinuationOptions.NotOnCanceled);
         }
 
@@ -46,15 +45,16 @@ namespace Altairis.AutoAcme.Core {
                 response.StatusCode = 404;
                 response.StatusDescription = "Not Found";
                 response.Close();
+                return;
             }
             if (!request.HttpMethod.Equals("GET", StringComparison.OrdinalIgnoreCase)) {
                 response.StatusCode = 405;
                 response.StatusDescription = "Method Not Allowed";
                 response.Close();
+                return;
             }
             response.StatusCode = 200;
             response.StatusDescription = "OK";
-            response.ContentType = "application/json";
             response.Close(Encoding.UTF8.GetBytes(authString), false);
         }
     }
