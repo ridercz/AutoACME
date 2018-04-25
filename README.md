@@ -12,6 +12,11 @@ Its features include:
 * Allows use of certificates outside of IIS and web
 * Supports web farms
 
+Its features _do not include_ (see [FAQ](https://github.com/ridercz/AutoACME/wiki/Feature-FAQ)):
+* Support for SAN (multiple host names) certificates
+* Support for wildcard certificates
+
+
 ## How to get it
 [Download the latest release](https://github.com/ridercz/AutoACME/releases/latest) from GitHub.
 
