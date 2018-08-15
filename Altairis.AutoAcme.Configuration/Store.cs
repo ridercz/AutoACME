@@ -12,6 +12,10 @@ namespace Altairis.AutoAcme.Configuration {
 
         public string SerializedAccountData { get; set; }
 
+        public bool SelfHostChallenge { get; set; } = false;
+
+        public string SelfHostUrlPrefix { get; set; } = "http://+:80/Temporary_Listen_Addresses/AutoACME/";
+
         public string ChallengeFolder { get; set; } = @"C:\InetPub\wwwroot\AutoAcme";
 
         public string PfxFolder { get; set; } = @"C:\CertStore\PFX";

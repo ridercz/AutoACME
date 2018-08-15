@@ -10,14 +10,8 @@ using NConsoler;
 
 namespace Altairis.AutoAcme.Manager {
     class Program {
-        private const int ERRORLEVEL_SUCCESS = 0;
-        private const int ERRORLEVEL_FAILURE = 1;
-        private const string DEFAULT_CONFIG_NAME = "autoacme.json";
         private static readonly Uri DEFAULT_SERVER_URL = new Uri("https://acme-v01.api.letsencrypt.org/directory");
         private static readonly Uri STAGING_SERVER_URL = new Uri("https://acme-staging.api.letsencrypt.org/directory");
-
-        private static bool verboseMode;
-        private static Store cfgStore;
 
         static void Main(string[] args) {
             Trace.Listeners.Add(new ConsoleTraceListener());
@@ -36,15 +30,16 @@ namespace Altairis.AutoAcme.Manager {
         [Optional(null, "cfg", Description = "Custom configuration file name")] string cfgFileName,
         [Optional(false, "y", Description = "Overwrite existing file")] bool overwrite,
         [Optional(false, Description = "Show verbose error messages")] bool verbose) {
-
-            verboseMode = verbose;
-            if (cfgStore == null) LoadConfig(cfgFileName);
+            AcmeEnvironment.VerboseMode = verbose;
+            if (AcmeEnvironment.CfgStore == null)
+                AcmeEnvironment.LoadConfig(cfgFileName);
 
             // Check for current web.config file
-            var webConfigName = Path.Combine(cfgStore.ChallengeFolder, "web.config");
+            var webConfigName = Path.Combine(AcmeEnvironment.CfgStore.ChallengeFolder, "web.config");
             if (!overwrite) {
                 Console.Write($"Checking current {webConfigName}...");
-                if (File.Exists(webConfigName)) CrashExit("File already exists. Use /y to overwrite.");
+                if (File.Exists(webConfigName))
+                    AcmeEnvironment.CrashExit("File already exists. Use /y to overwrite.");
                 Console.WriteLine("OK");
             }
 
@@ -55,7 +50,7 @@ namespace Altairis.AutoAcme.Manager {
                 Console.WriteLine("OK");
             }
             catch (Exception ex) {
-                CrashExit(ex);
+                AcmeEnvironment.CrashExit(ex);
             }
         }
 
@@ -65,14 +60,14 @@ namespace Altairis.AutoAcme.Manager {
             [Optional(null, "cfg", Description = "Custom configuration file name")] string cfgFileName,
             [Optional(false, "y", Description = "Overwrite existing file")] bool overwrite,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
-
-            verboseMode = verbose;
+            AcmeEnvironment.VerboseMode = verbose;
 
             // Check if config file already exists
-            if (!overwrite && File.Exists(cfgFileName)) CrashExit("Configuration file already exists. Use /y to overwrite.");
+            if (!overwrite && File.Exists(cfgFileName))
+                AcmeEnvironment.CrashExit("Configuration file already exists. Use /y to overwrite.");
 
             // Create default configuration
-            cfgStore = new Configuration.Store();
+            AcmeEnvironment.CfgStore = new Configuration.Store();
 
             if (!useDefaults) {
                 // Ask some questions
@@ -84,27 +79,29 @@ namespace Altairis.AutoAcme.Manager {
                 Console.WriteLine("would be used for critical communication, such as certificate expiration when");
                 Console.WriteLine("no renewed certificate has been issued etc. Type your e-mail and press ENTER.");
                 Console.Write("> ");
-                cfgStore.EmailAddress = Console.ReadLine();
+                AcmeEnvironment.CfgStore.EmailAddress = Console.ReadLine();
 
                 Console.WriteLine("Enter the folder for challenge verification files. Default path is:");
-                Console.WriteLine(cfgStore.ChallengeFolder);
+                Console.WriteLine(AcmeEnvironment.CfgStore.ChallengeFolder);
                 Console.WriteLine("To use it, just press ENTER.");
                 Console.Write("> ");
                 var challengePath = Console.ReadLine();
-                if (!string.IsNullOrWhiteSpace(challengePath)) cfgStore.ChallengeFolder = challengePath;
+                if (!string.IsNullOrWhiteSpace(challengePath))
+                    AcmeEnvironment.CfgStore.ChallengeFolder = challengePath;
 
                 Console.WriteLine("Enter the folder where PFX files are to be stored. Default path is:");
-                Console.WriteLine(cfgStore.PfxFolder);
+                Console.WriteLine(AcmeEnvironment.CfgStore.PfxFolder);
                 Console.WriteLine("To use it, just press ENTER.");
                 Console.Write("> ");
                 var pfxPath = Console.ReadLine();
-                if (!string.IsNullOrWhiteSpace(pfxPath)) cfgStore.PfxFolder = pfxPath;
+                if (!string.IsNullOrWhiteSpace(pfxPath))
+                    AcmeEnvironment.CfgStore.PfxFolder = pfxPath;
 
                 Console.WriteLine("Enter the password used for encryption of PFX files. The password provides some");
                 Console.WriteLine("additional protection, but should not be too relied upon. It will be stored in");
                 Console.WriteLine("the configuration file in plain text.");
                 Console.Write("> ");
-                cfgStore.PfxPassword = Console.ReadLine();
+                AcmeEnvironment.CfgStore.PfxPassword = Console.ReadLine();
 
                 Console.WriteLine("Enter URL of the ACME server you are going to use:");
                 Console.WriteLine(" - To use Let's Encrypt production server, just press ENTER");
@@ -113,33 +110,33 @@ namespace Altairis.AutoAcme.Manager {
                 Console.Write("> ");
                 var acmeServer = Console.ReadLine();
                 if (string.IsNullOrWhiteSpace(acmeServer)) {
-                    cfgStore.ServerUri = DEFAULT_SERVER_URL;
+                    AcmeEnvironment.CfgStore.ServerUri = DEFAULT_SERVER_URL;
                 }
                 else if (acmeServer.Trim().Equals("staging", StringComparison.OrdinalIgnoreCase)) {
-                    cfgStore.ServerUri = STAGING_SERVER_URL;
+                    AcmeEnvironment.CfgStore.ServerUri = STAGING_SERVER_URL;
                 }
                 else {
-                    cfgStore.ServerUri = new Uri(acmeServer);
+                    AcmeEnvironment.CfgStore.ServerUri = new Uri(acmeServer);
                 }
                 Console.WriteLine(string.Empty);
             }
 
             // Save to file
-            SaveConfig(cfgFileName);
+            AcmeEnvironment.SaveConfig(cfgFileName);
 
             // Ensure folders are created
-            EnsureFolderExists(cfgStore.ChallengeFolder);
-            EnsureFolderExists(cfgStore.PfxFolder);
+            EnsureFolderExists(AcmeEnvironment.CfgStore.ChallengeFolder);
+            EnsureFolderExists(AcmeEnvironment.CfgStore.PfxFolder);
             Console.WriteLine(string.Empty);
 
             // Create web.config;
             InitWeb(cfgFileName, overwrite, verbose);
 
             // Create account
-            using (var ac = new AcmeContext(cfgStore.ServerUri)) {
-                cfgStore.SerializedAccountData = ac.RegisterAndLogin(cfgStore.EmailAddress);
+            using (var ac = new AcmeContext(AcmeEnvironment.CfgStore.ServerUri)) {
+                AcmeEnvironment.CfgStore.SerializedAccountData = ac.RegisterAndLogin(AcmeEnvironment.CfgStore.EmailAddress);
             }
-            SaveConfig(cfgFileName);
+            AcmeEnvironment.SaveConfig(cfgFileName);
 
             // Display farewell message
             Console.WriteLine("There are some additional options you can set in configuration file directly.");
@@ -151,12 +148,12 @@ namespace Altairis.AutoAcme.Manager {
             [Required(Description = "Host name")] string hostName,
             [Optional(null, "cfg", Description = "Custom configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
-
-            verboseMode = verbose;
-            if (cfgStore == null) LoadConfig(cfgFileName);
+            AcmeEnvironment.VerboseMode = verbose;
+            if (AcmeEnvironment.CfgStore == null)
+                AcmeEnvironment.LoadConfig(cfgFileName);
             hostName = hostName.Trim().ToLower();
 
-            var result = AcmeContext.TestAuthorization(hostName, CreateChallenge, CleanupChallenge);
+            var result = AcmeContext.TestAuthorization(hostName, AcmeEnvironment.CreateChallenge, AcmeEnvironment.CleanupChallenge);
             Trace.WriteLine(string.Empty);
 
             if (result) {
@@ -174,14 +171,15 @@ namespace Altairis.AutoAcme.Manager {
             [Optional(false, "xt", Description = "Skip authentication test")] bool skipTest,
             [Optional(null, "cfg", Description = "Custom configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
-
-            verboseMode = verbose;
-            if (cfgStore == null) LoadConfig(cfgFileName);
+            AcmeEnvironment.VerboseMode = verbose;
+            if (AcmeEnvironment.CfgStore == null)
+                AcmeEnvironment.LoadConfig(cfgFileName);
             hostName = hostName.Trim().ToLower();
 
             // Check if there already is host with this name
             Trace.Write("Checking host...");
-            if (cfgStore.Hosts.Any(x => x.CommonName.Equals(hostName))) CrashExit($"Host '{hostName}' is already managed.");
+            if (AcmeEnvironment.CfgStore.Hosts.Any(x => x.CommonName.Equals(hostName)))
+                AcmeEnvironment.CrashExit($"Host '{hostName}' is already managed.");
             Trace.WriteLine("OK");
 
             // Request certificate
@@ -189,33 +187,33 @@ namespace Altairis.AutoAcme.Manager {
             Trace.Indent();
             CertificateRequestResult result = null;
             try {
-                using (var ac = new AcmeContext(cfgStore.ServerUri)) {
-                    ac.ChallengeVerificationRetryCount = cfgStore.ChallengeVerificationRetryCount;
-                    ac.ChallengeVerificationWait = TimeSpan.FromSeconds(cfgStore.ChallengeVerificationWaitSeconds);
+                using (var ac = new AcmeContext(AcmeEnvironment.CfgStore.ServerUri)) {
+                    ac.ChallengeVerificationRetryCount = AcmeEnvironment.CfgStore.ChallengeVerificationRetryCount;
+                    ac.ChallengeVerificationWait = TimeSpan.FromSeconds(AcmeEnvironment.CfgStore.ChallengeVerificationWaitSeconds);
 
-                    if (string.IsNullOrEmpty(cfgStore.SerializedAccountData)) {
-                        cfgStore.SerializedAccountData = ac.RegisterAndLogin(cfgStore.EmailAddress);
-                        SaveConfig(cfgFileName);
+                    if (string.IsNullOrEmpty(AcmeEnvironment.CfgStore.SerializedAccountData)) {
+                        AcmeEnvironment.CfgStore.SerializedAccountData = ac.RegisterAndLogin(AcmeEnvironment.CfgStore.EmailAddress);
+                        AcmeEnvironment.SaveConfig(cfgFileName);
                     }
                     else {
-                        ac.Login(cfgStore.SerializedAccountData);
+                        ac.Login(AcmeEnvironment.CfgStore.SerializedAccountData);
                     }
 
                     result = ac.GetCertificate(
                         hostName: hostName,
-                        pfxPassword: cfgStore.PfxPassword,
-                        challengeCallback: CreateChallenge,
-                        cleanupCallback: CleanupChallenge,
+                        pfxPassword: AcmeEnvironment.CfgStore.PfxPassword,
+                        challengeCallback: AcmeEnvironment.CreateChallenge,
+                        cleanupCallback: AcmeEnvironment.CleanupChallenge,
                         skipTest: skipTest);
                 }
             }
             catch (Exception ex) {
                 Trace.WriteLine($"Request failed: {ex.Message}");
-                if (verboseMode) {
+                if (AcmeEnvironment.VerboseMode) {
                     Trace.WriteLine(string.Empty);
                     Trace.WriteLine(ex);
                 }
-                CrashExit("Unable to get certificate for new host.");
+                AcmeEnvironment.CrashExit("Unable to get certificate for new host.");
             }
 
             if (result != null) {
@@ -234,12 +232,12 @@ namespace Altairis.AutoAcme.Manager {
                 // Export files
                 Trace.WriteLine("Exporting files:");
                 Trace.Indent();
-                result.Export(hostName, cfgStore.PfxFolder, cfgStore.PemFolder);
+                result.Export(hostName, AcmeEnvironment.CfgStore.PfxFolder, AcmeEnvironment.CfgStore.PemFolder);
                 Trace.Unindent();
 
                 // Update database entry
                 Trace.Write("Updating database entry...");
-                cfgStore.Hosts.Add(new Host {
+                AcmeEnvironment.CfgStore.Hosts.Add(new Host {
                     CommonName = hostName,
                     NotBefore = result.Certificate.NotBefore,
                     NotAfter = result.Certificate.NotAfter,
@@ -249,7 +247,7 @@ namespace Altairis.AutoAcme.Manager {
                 Trace.WriteLine("OK");
 
                 // Save configuration
-                SaveConfig(cfgFileName);
+                AcmeEnvironment.SaveConfig(cfgFileName);
             }
         }
 
@@ -258,30 +256,31 @@ namespace Altairis.AutoAcme.Manager {
             [Required(Description = "Host name")] string hostName,
             [Optional(null, "cfg", Description = "Custom configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
-
-            verboseMode = verbose;
-            if (cfgStore == null) LoadConfig(cfgFileName);
+            AcmeEnvironment.VerboseMode = verbose;
+            if (AcmeEnvironment.CfgStore == null)
+                AcmeEnvironment.LoadConfig(cfgFileName);
             hostName = hostName.Trim().ToLower();
 
             // Check if there is host with this name
             Trace.Write($"Finding host {hostName}...");
-            var host = cfgStore.Hosts.SingleOrDefault(x => x.CommonName.Equals(hostName));
-            if (host == null) CrashExit($"Host '{hostName}' was not found.");
+            var host = AcmeEnvironment.CfgStore.Hosts.SingleOrDefault(x => x.CommonName.Equals(hostName));
+            if (host == null)
+                AcmeEnvironment.CrashExit($"Host '{hostName}' was not found.");
             Trace.WriteLine("OK");
 
             // Delete files
             Trace.WriteLine("Deleting files:");
             Trace.Indent();
-            DeleteHostFiles(hostName, cfgStore.PfxFolder, cfgStore.PemFolder);
+            DeleteHostFiles(hostName, AcmeEnvironment.CfgStore.PfxFolder, AcmeEnvironment.CfgStore.PemFolder);
             Trace.Unindent();
 
             // Delete entry from configuration
             Trace.Write("Deleting configuration entry...");
-            cfgStore.Hosts.Remove(host);
+            AcmeEnvironment.CfgStore.Hosts.Remove(host);
             Trace.WriteLine("OK");
 
             // Save configuration
-            SaveConfig(cfgFileName);
+            AcmeEnvironment.SaveConfig(cfgFileName);
         }
 
         [Action("Lists all host and certificate information.")]
@@ -292,10 +291,10 @@ namespace Altairis.AutoAcme.Manager {
             [Optional("o", "df", Description = "Date format string")] string dateFormat,
             [Optional(null, "cfg", Description = "Custom configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
-
-            verboseMode = verbose;
+            AcmeEnvironment.VerboseMode = verbose;
             if (columnSeparator.Equals("TAB", StringComparison.OrdinalIgnoreCase)) columnSeparator = "\t";
-            if (cfgStore == null) LoadConfig(cfgFileName);
+            if (AcmeEnvironment.CfgStore == null)
+                AcmeEnvironment.LoadConfig(cfgFileName);
 
             // List hosts
             Trace.Write("Getting hosts...");
@@ -308,7 +307,7 @@ namespace Altairis.AutoAcme.Manager {
                  "Serial Number",
                  "Thumbprint",
                  "DaysToExpire"));
-            foreach (var item in cfgStore.Hosts) {
+            foreach (var item in AcmeEnvironment.CfgStore.Hosts) {
                 sb.AppendLine(string.Join(columnSeparator,
                     item.CommonName,
                     item.NotBefore.ToString(dateFormat),
@@ -332,7 +331,7 @@ namespace Altairis.AutoAcme.Manager {
                 }
             }
             catch (Exception ex) {
-                CrashExit(ex);
+                AcmeEnvironment.CrashExit(ex);
             }
         }
 
@@ -341,14 +340,14 @@ namespace Altairis.AutoAcme.Manager {
             [Optional(false, "wi", Description = "What if - only show hosts to be purged")] bool whatIf,
             [Optional(null, "cfg", Description = "Custom configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
-
-            verboseMode = verbose;
-            if (cfgStore == null) LoadConfig(cfgFileName);
+            AcmeEnvironment.VerboseMode = verbose;
+            if (AcmeEnvironment.CfgStore == null)
+                AcmeEnvironment.LoadConfig(cfgFileName);
 
             // Get old expired hosts
-            Trace.Write($"Loading hosts expired at least {cfgStore.PurgeDaysAfterExpiration} days ago...");
-            var expiredHosts = cfgStore.Hosts
-                .Where(x => x.NotAfter <= DateTime.Today.AddDays(-cfgStore.PurgeDaysAfterExpiration))
+            Trace.Write($"Loading hosts expired at least {AcmeEnvironment.CfgStore.PurgeDaysAfterExpiration} days ago...");
+            var expiredHosts = AcmeEnvironment.CfgStore.Hosts
+                .Where(x => x.NotAfter <= DateTime.Today.AddDays(-AcmeEnvironment.CfgStore.PurgeDaysAfterExpiration))
                 .OrderBy(x => x.NotAfter);
             if (!expiredHosts.Any()) {
                 Trace.WriteLine("OK, no hosts to purge");
@@ -367,20 +366,19 @@ namespace Altairis.AutoAcme.Manager {
 
                 // Delete from config
                 Trace.Write("Deleting from database...");
-                cfgStore.Hosts.Remove(item);
+                AcmeEnvironment.CfgStore.Hosts.Remove(item);
                 Trace.WriteLine("OK");
 
                 // Delete files
                 Trace.WriteLine("Deleting files:");
                 Trace.Indent();
-                DeleteHostFiles(item.CommonName, cfgStore.PfxFolder, cfgStore.PemFolder);
+                DeleteHostFiles(item.CommonName, AcmeEnvironment.CfgStore.PfxFolder, AcmeEnvironment.CfgStore.PemFolder);
                 Trace.Unindent();
 
                 Trace.Unindent();
             }
             Trace.Unindent();
-
-            SaveConfig(cfgFileName);
+            AcmeEnvironment.SaveConfig(cfgFileName);
         }
 
         [Action("Renews certificates expiring in near future.")]
@@ -389,14 +387,14 @@ namespace Altairis.AutoAcme.Manager {
             [Optional(false, "wi", Description = "What if - only show hosts to be renewed")] bool whatIf,
             [Optional(null, "cfg", Description = "Custom configuration file name")] string cfgFileName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
-
-            verboseMode = verbose;
-            if (cfgStore == null) LoadConfig(cfgFileName);
+            AcmeEnvironment.VerboseMode = verbose;
+            if (AcmeEnvironment.CfgStore == null)
+                AcmeEnvironment.LoadConfig(cfgFileName);
 
             // Get hosts expiring in near future
-            Trace.Write($"Loading hosts expiring in {cfgStore.RenewDaysBeforeExpiration} days...");
-            var expiringHosts = cfgStore.Hosts
-                .Where(x => x.NotAfter <= DateTime.Now.AddDays(cfgStore.RenewDaysBeforeExpiration))
+            Trace.Write($"Loading hosts expiring in {AcmeEnvironment.CfgStore.RenewDaysBeforeExpiration} days...");
+            var expiringHosts = AcmeEnvironment.CfgStore.Hosts
+                .Where(x => x.NotAfter <= DateTime.Now.AddDays(AcmeEnvironment.CfgStore.RenewDaysBeforeExpiration))
                 .OrderBy(x => x.NotAfter);
             if (!expiringHosts.Any()) {
                 Trace.WriteLine("OK, no hosts to renew");
@@ -404,26 +402,26 @@ namespace Altairis.AutoAcme.Manager {
             }
             Trace.WriteLine($"OK, {expiringHosts.Count()} hosts to renew");
 
-            using (var ac = new AcmeContext(cfgStore.ServerUri)) {
+            using (var ac = new AcmeContext(AcmeEnvironment.CfgStore.ServerUri)) {
                 try {
-                    ac.ChallengeVerificationRetryCount = cfgStore.ChallengeVerificationRetryCount;
-                    ac.ChallengeVerificationWait = TimeSpan.FromSeconds(cfgStore.ChallengeVerificationWaitSeconds);
+                    ac.ChallengeVerificationRetryCount = AcmeEnvironment.CfgStore.ChallengeVerificationRetryCount;
+                    ac.ChallengeVerificationWait = TimeSpan.FromSeconds(AcmeEnvironment.CfgStore.ChallengeVerificationWaitSeconds);
 
-                    if (string.IsNullOrEmpty(cfgStore.SerializedAccountData)) {
-                        cfgStore.SerializedAccountData = ac.RegisterAndLogin(cfgStore.EmailAddress);
-                        SaveConfig(cfgFileName);
+                    if (string.IsNullOrEmpty(AcmeEnvironment.CfgStore.SerializedAccountData)) {
+                        AcmeEnvironment.CfgStore.SerializedAccountData = ac.RegisterAndLogin(AcmeEnvironment.CfgStore.EmailAddress);
+                        AcmeEnvironment.SaveConfig(cfgFileName);
                     }
                     else {
-                        ac.Login(cfgStore.SerializedAccountData);
+                        ac.Login(AcmeEnvironment.CfgStore.SerializedAccountData);
                     }
                 }
                 catch (Exception ex) {
                     Trace.WriteLine($"Login failed: {ex.Message}");
-                    if (verboseMode) {
+                    if (AcmeEnvironment.VerboseMode) {
                         Trace.WriteLine(string.Empty);
                         Trace.WriteLine(ex);
                     }
-                    CrashExit("Unable to login or create account.");
+                    AcmeEnvironment.CrashExit("Unable to login or create account.");
                 }
 
                 // Renew them
@@ -449,15 +447,15 @@ namespace Altairis.AutoAcme.Manager {
                     try {
                         result = ac.GetCertificate(
                             hostName: item.CommonName,
-                            pfxPassword: cfgStore.PfxPassword,
-                            challengeCallback: CreateChallenge,
-                            cleanupCallback: CleanupChallenge,
+                            pfxPassword: AcmeEnvironment.CfgStore.PfxPassword,
+                            challengeCallback: AcmeEnvironment.CreateChallenge,
+                            cleanupCallback: AcmeEnvironment.CleanupChallenge,
                             skipTest: skipTest);
 
                     }
                     catch (Exception ex) {
                         Trace.WriteLine($"Renewal failed: {ex.Message}");
-                        if (verboseMode) {
+                        if (AcmeEnvironment.VerboseMode) {
                             Trace.WriteLine(string.Empty);
                             Trace.WriteLine(ex);
                         }
@@ -478,7 +476,7 @@ namespace Altairis.AutoAcme.Manager {
                         // Export files
                         Trace.WriteLine("Exporting files:");
                         Trace.Indent();
-                        result.Export(item.CommonName, cfgStore.PfxFolder, cfgStore.PemFolder);
+                        result.Export(item.CommonName, AcmeEnvironment.CfgStore.PfxFolder, AcmeEnvironment.CfgStore.PemFolder);
                         Trace.Unindent();
 
                         // Update database entry
@@ -490,7 +488,7 @@ namespace Altairis.AutoAcme.Manager {
                         Trace.WriteLine("OK");
 
                         // Save configuration
-                        SaveConfig(cfgFileName);
+                        AcmeEnvironment.SaveConfig(cfgFileName);
                     }
 
                     Trace.Unindent();
@@ -533,45 +531,10 @@ namespace Altairis.AutoAcme.Manager {
                     Trace.WriteLine("Warning!");
                     Trace.WriteLine(ex.Message);
 
-                    if (verboseMode) {
+                    if (AcmeEnvironment.VerboseMode) {
                         Trace.WriteLine(string.Empty);
                         Trace.WriteLine(ex);
                     }
-                }
-            }
-        }
-
-        private static void CreateChallenge(string tokenId, string authString) {
-            if (tokenId == null) throw new ArgumentNullException(nameof(tokenId));
-            if (string.IsNullOrWhiteSpace(tokenId)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(tokenId));
-            if (authString == null) throw new ArgumentNullException(nameof(authString));
-            if (string.IsNullOrWhiteSpace(authString)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(authString));
-
-            var fileName = Path.Combine(cfgStore.ChallengeFolder, tokenId);
-            try {
-                Trace.Write($"Writing challenge to {fileName}...");
-                File.WriteAllText(fileName, authString);
-                Trace.WriteLine("OK");
-            }
-            catch (Exception ex) {
-                CrashExit(ex);
-            }
-        }
-
-        private static void CleanupChallenge(string tokenId) {
-            var fileName = Path.Combine(cfgStore.ChallengeFolder, tokenId);
-            if (!File.Exists(fileName)) return;
-            try {
-                Trace.Write($"Deleting challenge from {fileName}...");
-                File.Delete(fileName);
-                Trace.WriteLine("OK");
-            }
-            catch (Exception ex) {
-                Trace.WriteLine("Warning!");
-                Trace.WriteLine(ex.Message);
-                if (verboseMode) {
-                    Trace.WriteLine(string.Empty);
-                    Trace.WriteLine(ex);
                 }
             }
         }
@@ -589,57 +552,11 @@ namespace Altairis.AutoAcme.Manager {
             catch (Exception ex) {
                 Trace.WriteLine("Failed!");
                 Trace.WriteLine(ex.Message);
-                if (verboseMode) {
+                if (AcmeEnvironment.VerboseMode) {
                     Trace.WriteLine(string.Empty);
                     Trace.WriteLine(ex);
                 }
             }
-        }
-
-        private static void LoadConfig(string cfgFileName) {
-            if (string.IsNullOrWhiteSpace(cfgFileName)) {
-                cfgFileName = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), DEFAULT_CONFIG_NAME);
-            }
-
-            try {
-                Trace.Write($"Reading configuration from '{cfgFileName}'...");
-                cfgStore = Store.Load(cfgFileName);
-                Trace.WriteLine("OK");
-            }
-            catch (Exception ex) {
-                CrashExit(ex);
-            }
-        }
-
-        private static void SaveConfig(string cfgFileName) {
-            if (string.IsNullOrWhiteSpace(cfgFileName)) {
-                cfgFileName = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), DEFAULT_CONFIG_NAME);
-            }
-
-            try {
-                Trace.Write($"Saving configuration to '{cfgFileName}'...");
-                cfgStore.Save(cfgFileName);
-                Trace.WriteLine("OK");
-            }
-            catch (Exception ex) {
-                CrashExit(ex);
-            }
-        }
-
-        private static void CrashExit(string message) {
-            Trace.WriteLine("Failed!");
-            Trace.WriteLine(message);
-            Environment.Exit(ERRORLEVEL_FAILURE);
-        }
-
-        private static void CrashExit(Exception ex) {
-            Trace.WriteLine("Failed!");
-            Trace.WriteLine(ex.Message);
-            if (verboseMode) {
-                Trace.WriteLine(string.Empty);
-                Trace.WriteLine(ex);
-            }
-            Environment.Exit(ERRORLEVEL_FAILURE);
         }
     }
 }
