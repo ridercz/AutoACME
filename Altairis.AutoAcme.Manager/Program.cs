@@ -9,11 +9,11 @@ using Altairis.AutoAcme.Core;
 using NConsoler;
 
 namespace Altairis.AutoAcme.Manager {
-    class Program {
+    internal class Program {
         private static readonly Uri DEFAULT_SERVER_URL = new Uri("https://acme-v01.api.letsencrypt.org/directory");
         private static readonly Uri STAGING_SERVER_URL = new Uri("https://acme-staging.api.letsencrypt.org/directory");
 
-        static void Main(string[] args) {
+        private static void Main(string[] args) {
             Trace.Listeners.Add(new ConsoleTraceListener());
             Trace.IndentSize = 2;
 
@@ -111,11 +111,9 @@ namespace Altairis.AutoAcme.Manager {
                 var acmeServer = Console.ReadLine();
                 if (string.IsNullOrWhiteSpace(acmeServer)) {
                     AcmeEnvironment.CfgStore.ServerUri = DEFAULT_SERVER_URL;
-                }
-                else if (acmeServer.Trim().Equals("staging", StringComparison.OrdinalIgnoreCase)) {
+                } else if (acmeServer.Trim().Equals("staging", StringComparison.OrdinalIgnoreCase)) {
                     AcmeEnvironment.CfgStore.ServerUri = STAGING_SERVER_URL;
-                }
-                else {
+                } else {
                     AcmeEnvironment.CfgStore.ServerUri = new Uri(acmeServer);
                 }
                 Console.WriteLine(string.Empty);
@@ -159,8 +157,7 @@ namespace Altairis.AutoAcme.Manager {
             if (result) {
                 Trace.WriteLine("Test authorization was successful. The real verification may still fail,");
                 Trace.WriteLine("ie. when server is not accessible from outside.");
-            }
-            else {
+            } else {
                 Trace.WriteLine("Test authorization failed. Examine the above to find out why.");
             }
         }
@@ -194,8 +191,7 @@ namespace Altairis.AutoAcme.Manager {
                     if (string.IsNullOrEmpty(AcmeEnvironment.CfgStore.SerializedAccountData)) {
                         AcmeEnvironment.CfgStore.SerializedAccountData = ac.RegisterAndLogin(AcmeEnvironment.CfgStore.EmailAddress);
                         AcmeEnvironment.SaveConfig(cfgFileName);
-                    }
-                    else {
+                    } else {
                         ac.Login(AcmeEnvironment.CfgStore.SerializedAccountData);
                     }
 
@@ -206,6 +202,17 @@ namespace Altairis.AutoAcme.Manager {
                         cleanupCallback: AcmeEnvironment.CleanupChallenge,
                         skipTest: skipTest);
                 }
+            }
+            catch (AggregateException aex) {
+                Trace.WriteLine("Failed!");
+                foreach (var iaex in aex.Flatten().InnerExceptions) {
+                    Trace.WriteLine(iaex.Message);
+                    if (AcmeEnvironment.VerboseMode) {
+                        Trace.WriteLine(string.Empty);
+                        Trace.WriteLine(iaex);
+                    }
+                }
+                AcmeEnvironment.CrashExit("Unable to get certificate for new host.");
             }
             catch (Exception ex) {
                 Trace.WriteLine($"Request failed: {ex.Message}");
@@ -299,7 +306,7 @@ namespace Altairis.AutoAcme.Manager {
             // List hosts
             Trace.Write("Getting hosts...");
             var sb = new StringBuilder();
-            int count = 0;
+            var count = 0;
             if (!skipHeaders) sb.AppendLine(string.Join(columnSeparator,
                  "Common Name",
                  "Not Before",
@@ -323,8 +330,7 @@ namespace Altairis.AutoAcme.Manager {
             try {
                 if (string.IsNullOrWhiteSpace(fileName)) {
                     Trace.WriteLine(sb);
-                }
-                else {
+                } else {
                     Trace.Write($"Writing to file '{fileName}'...");
                     File.WriteAllText(fileName, sb.ToString());
                     Trace.WriteLine("OK");
@@ -410,9 +416,18 @@ namespace Altairis.AutoAcme.Manager {
                     if (string.IsNullOrEmpty(AcmeEnvironment.CfgStore.SerializedAccountData)) {
                         AcmeEnvironment.CfgStore.SerializedAccountData = ac.RegisterAndLogin(AcmeEnvironment.CfgStore.EmailAddress);
                         AcmeEnvironment.SaveConfig(cfgFileName);
-                    }
-                    else {
+                    } else {
                         ac.Login(AcmeEnvironment.CfgStore.SerializedAccountData);
+                    }
+                }
+                catch (AggregateException aex) {
+                    Trace.WriteLine("Login failed!");
+                    foreach (var iaex in aex.Flatten().InnerExceptions) {
+                        Trace.WriteLine(iaex.Message);
+                        if (AcmeEnvironment.VerboseMode) {
+                            Trace.WriteLine(String.Empty);
+                            Trace.WriteLine(iaex);
+                        }
                     }
                 }
                 catch (Exception ex) {
@@ -433,8 +448,7 @@ namespace Altairis.AutoAcme.Manager {
                     var dte = Math.Floor(item.NotAfter.Subtract(DateTime.Now).TotalDays);
                     if (dte < 0) {
                         Trace.WriteLine($"Host {item.CommonName} expired {-dte} days ago ({item.NotAfter:D})");
-                    }
-                    else {
+                    } else {
                         Trace.WriteLine($"Host {item.CommonName} expires in {dte} days ({item.NotAfter:D})");
                     }
 
@@ -452,6 +466,16 @@ namespace Altairis.AutoAcme.Manager {
                             cleanupCallback: AcmeEnvironment.CleanupChallenge,
                             skipTest: skipTest);
 
+                    }
+                    catch (AggregateException aex) {
+                        Trace.WriteLine("Renewal failed!");
+                        foreach (var iaex in aex.Flatten().InnerExceptions) {
+                            Trace.WriteLine(iaex.Message);
+                            if (AcmeEnvironment.VerboseMode) {
+                                Trace.WriteLine(String.Empty);
+                                Trace.WriteLine(iaex);
+                            }
+                        }
                     }
                     catch (Exception ex) {
                         Trace.WriteLine($"Renewal failed: {ex.Message}");

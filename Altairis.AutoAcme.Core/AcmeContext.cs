@@ -176,19 +176,16 @@ namespace Altairis.AutoAcme.Core {
                     // Analyze response headers
                     if (rp.StatusCode == System.Net.HttpStatusCode.OK) {
                         Trace.WriteLine("OK: Status code 200");
-                    }
-                    else {
+                    } else {
                         Trace.WriteLine($"ERROR: Response contains status code {rp.StatusCode}. Expecting 200 (OK).");
                         result = false;
                     }
 
                     if (!rp.Headers.AllKeys.Contains("Content-Type", StringComparer.OrdinalIgnoreCase)) {
                         Trace.WriteLine("OK: No Content-Type header");
-                    }
-                    else if (rp.ContentType.Equals("text/json")) {
+                    } else if (rp.ContentType.Equals("text/json")) {
                         Trace.WriteLine("OK: Content-Type header");
-                    }
-                    else {
+                    } else {
                         Trace.WriteLine($"ERROR: Response contains Content-Type {rp.ContentType}. This header must either be 'text/json' or be missing.");
                         result = false;
                     }
@@ -196,8 +193,7 @@ namespace Altairis.AutoAcme.Core {
                     // Analyze response contents
                     if (expectedValue.Equals(responseText)) {
                         Trace.WriteLine("OK: Expected response received");
-                    }
-                    else {
+                    } else {
                         Trace.WriteLine($"ERROR: Invalid response content. Expected '{expectedValue}', got the following:");
                         Trace.WriteLine(responseText);
                         result = false;
@@ -207,6 +203,7 @@ namespace Altairis.AutoAcme.Core {
                     Trace.Unindent();
                 }
             }
+
             catch (Exception ex) {
                 Trace.WriteLine("Failed!");
                 Trace.WriteLine(ex.Message);
@@ -254,8 +251,7 @@ namespace Altairis.AutoAcme.Core {
             // Check authorization status
             if (ar.Data.Status == EntityStatus.Valid) {
                 Trace.WriteLine("OK");
-            }
-            else {
+            } else {
                 Trace.WriteLine("Failed!");
                 Trace.WriteLine($"Last known status: {ar.Data.Status}");
             }
