@@ -78,7 +78,7 @@ namespace Altairis.AutoAcme.Core {
             // Get authorization
             Trace.WriteLine("Getting authorization:");
             Trace.Indent();
-            var authorizationResult = GetAuthorization(hostName, challengeCallback, cleanupCallback).Result;
+            var authorizationResult = this.GetAuthorization(hostName, challengeCallback, cleanupCallback).Result;
             Trace.Unindent();
             if (authorizationResult != EntityStatus.Valid) throw new Exception($"Authorization failed with status {authorizationResult}");
 
@@ -227,7 +227,7 @@ namespace Altairis.AutoAcme.Core {
 
             // Get challenge
             Trace.Write("Getting challenge...");
-            var ch = ar.Data.Challenges.First(x => x.Type == ChallengeTypes.Http01);
+            var ch = ar.Data.Challenges.First(x => x.Type == Certes.Acme.Resource.ChallengeTypes.Http01);
             var keyAuthString = this.client.ComputeKeyAuthorization(ch);
             Trace.WriteLine("OK, the following is challenge URI:");
             Trace.WriteLine(ch.Uri);
@@ -270,7 +270,7 @@ namespace Altairis.AutoAcme.Core {
 
         public void Dispose() {
             // Dispose of unmanaged resources.
-            Dispose(true);
+            this.Dispose(true);
 
             // Suppress finalization.
             GC.SuppressFinalize(this);
