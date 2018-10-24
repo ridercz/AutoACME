@@ -23,3 +23,9 @@ Its features _do not include_ (see [FAQ](https://github.com/ridercz/AutoACME/wik
 ## Documentation
 * [Getting started with AutoAcme](https://github.com/ridercz/AutoACME/wiki/Getting-started-with-AutoAcme)
 * [Documentation homepage](https://github.com/ridercz/AutoACME/wiki)
+
+## Contributor Code of Conduct
+
+This project adheres to No Code of Conduct. We are all adults. We accept anyone's contributions. Nothing else matters.
+
+For more information please visit the [No Code of Conduct](https://github.com/domgetter/NCoC) homepage.
