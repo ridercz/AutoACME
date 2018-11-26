@@ -7,12 +7,13 @@ using System.Linq;
 using System.Text;
 using Altairis.AutoAcme.Configuration;
 using Altairis.AutoAcme.Core;
+
+using Certes.Acme;
+
 using NConsoler;
 
 namespace Altairis.AutoAcme.Manager {
     internal class Program {
-        private static readonly Uri DEFAULT_SERVER_URL = new Uri("https://acme-v01.api.letsencrypt.org/directory");
-        private static readonly Uri STAGING_SERVER_URL = new Uri("https://acme-staging.api.letsencrypt.org/directory");
         private static readonly IdnMapping IDN_MAPPING = new IdnMapping();
 
         private static void Main(string[] args) {
@@ -112,9 +113,9 @@ namespace Altairis.AutoAcme.Manager {
                 Console.Write("> ");
                 var acmeServer = Console.ReadLine();
                 if (string.IsNullOrWhiteSpace(acmeServer)) {
-                    AcmeEnvironment.CfgStore.ServerUri = DEFAULT_SERVER_URL;
+                    AcmeEnvironment.CfgStore.ServerUri = WellKnownServers.LetsEncrypt;
                 } else if (acmeServer.Trim().Equals("staging", StringComparison.OrdinalIgnoreCase)) {
-                    AcmeEnvironment.CfgStore.ServerUri = STAGING_SERVER_URL;
+                    AcmeEnvironment.CfgStore.ServerUri = WellKnownServers.LetsEncryptStaging;
                 } else {
                     AcmeEnvironment.CfgStore.ServerUri = new Uri(acmeServer);
                 }
