@@ -5,6 +5,7 @@ using System.IO;
 using System.Reflection;
 
 using Altairis.AutoAcme.Configuration;
+using Altairis.AutoAcme.Core.Challenges;
 
 namespace Altairis.AutoAcme.Core {
     public static class AcmeEnvironment {
@@ -15,47 +16,20 @@ namespace Altairis.AutoAcme.Core {
         public static bool VerboseMode;
         public static Store CfgStore;
 
-        public static IDisposable CreateChallenge(string tokenId, string authString) {
-            if (tokenId == null) throw new ArgumentNullException(nameof(tokenId));
-            if (string.IsNullOrWhiteSpace(tokenId)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(tokenId));
-            if (authString == null) throw new ArgumentNullException(nameof(authString));
-            if (string.IsNullOrWhiteSpace(authString)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(authString));
+        public static ChallengeResponseProvider CreateChallengeManager() {
             try {
-                if (CfgStore.SelfHostChallenge) {
-                    return new ChallengeHosted(CfgStore.SelfHostUrlPrefix, tokenId, authString);
+                if (CfgStore.DnsChallenge) {
+                    return new DnsChallengeResponseProvider(VerboseMode, CfgStore.DnsServer, CfgStore.DnsDomain);
                 }
-                return new ChallengeFile(Path.Combine(CfgStore.ChallengeFolder, tokenId), authString);
+                if (CfgStore.SelfHostChallenge) {
+                    return new HttpChallengeHostedResponseProvider(VerboseMode, CfgStore.SelfHostUrlPrefix);
+                }
+                return new HttpChallengeFileResponseProvider(VerboseMode, CfgStore.ChallengeFolder);
             }
             catch (Exception ex) {
                 CrashExit(ex);
             }
             return null;
-        }
-
-        public static void CleanupChallenge(IDisposable challenge) {
-            if (challenge != null) {
-                try {
-                    challenge.Dispose();
-                }
-                catch (AggregateException aex) {
-                    Trace.WriteLine("Warning!");
-                    foreach (var iaex in aex.Flatten().InnerExceptions) {
-                        Trace.WriteLine(iaex.Message);
-                        if (VerboseMode) {
-                            Trace.WriteLine(string.Empty);
-                            Trace.WriteLine(iaex);
-                        }
-                    }
-                }
-                catch (Exception ex) {
-                    Trace.WriteLine("Warning!");
-                    Trace.WriteLine(ex.Message);
-                    if (VerboseMode) {
-                        Trace.WriteLine(string.Empty);
-                        Trace.WriteLine(ex);
-                    }
-                }
-            }
         }
 
         public static void LoadConfig(string cfgFileName) {
