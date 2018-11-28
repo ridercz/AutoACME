@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Reflection;
 
@@ -10,6 +11,7 @@ namespace Altairis.AutoAcme.Core {
         private const int ERRORLEVEL_SUCCESS = 0;
         private const int ERRORLEVEL_FAILURE = 1;
         public const string DEFAULT_CONFIG_NAME = "autoacme.json";
+        public static readonly IdnMapping IDN_MAPPING = new IdnMapping();
         public static bool VerboseMode;
         public static Store CfgStore;
 
@@ -112,6 +114,18 @@ namespace Altairis.AutoAcme.Core {
             }
 
             Environment.Exit(ERRORLEVEL_FAILURE);
+        }
+
+        public static string ToAsciiHostName(this string hostName) {
+            return IDN_MAPPING.GetAscii(hostName.Trim().ToLowerInvariant().Normalize());
+        }
+
+        public static string ExplainHostName(this string hostName) {
+            var unicodeHostname = IDN_MAPPING.GetUnicode(hostName);
+            if (!hostName.Equals(unicodeHostname, StringComparison.OrdinalIgnoreCase)) {
+                return $"{unicodeHostname} ({hostName})";
+            }
+            return unicodeHostname;
         }
     }
 }

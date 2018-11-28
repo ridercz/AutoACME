@@ -60,7 +60,7 @@ namespace Altairis.AutoAcme.IisSync {
 
                 // Find new hosts
                 Trace.Write("Finding new hosts to add...");
-                bindings = bindings.Where(x => !AcmeEnvironment.CfgStore.Hosts.Any(h => h.CommonName.Equals(x.Host)));
+                bindings = bindings.Where(x => !AcmeEnvironment.CfgStore.Hosts.Any(h => h.CommonName.Equals(x.Host, StringComparison.OrdinalIgnoreCase)));
                 if (!bindings.Any()) {
                     Trace.WriteLine("None");
                     return;
@@ -86,7 +86,7 @@ namespace Altairis.AutoAcme.IisSync {
                         // Check if was already added before
                         if (AcmeEnvironment.CfgStore.Hosts.Any(h => h.CommonName.Equals(binding.Host, StringComparison.OrdinalIgnoreCase))) continue;
 
-                        Trace.WriteLine($"Adding new host {binding.Host}:");
+                        Trace.WriteLine($"Adding new host {binding.Host.ExplainHostName()}:");
                         Trace.Indent();
 
                         // Request certificate
@@ -133,7 +133,7 @@ namespace Altairis.AutoAcme.IisSync {
                             && b.CentralCertStore);
                         if (addCcsBinding && !alreadyHasHttpsWithCcs) {
                             try {
-                                Trace.Write($"Adding HTTPS CCS binding for {binding.Host}...");
+                                Trace.Write($"Adding HTTPS CCS binding for {binding.Host.ExplainHostName()}...");
                                 sc.AddCcsBinding(binding.SiteName, binding.Host, requireSni);
                                 Trace.WriteLine("OK");
                             }
@@ -156,15 +156,15 @@ namespace Altairis.AutoAcme.IisSync {
             [Optional("localhost", "s", Description = "IIS server name")] string serverName,
             [Optional(false, Description = "Show verbose error messages")] bool verbose) {
             AcmeEnvironment.VerboseMode = verbose;
-            hostName = hostName.Trim().ToLower();
+            hostName = hostName.ToAsciiHostName();
 
             using (var sc = new ServerContext(serverName)) {
                 try {
-                    Trace.Write($"Getting bindings from {hostName}...");
+                    Trace.Write($"Getting bindings from {hostName.ExplainHostName()}...");
                     var bindings = sc.GetBindings().ToArray();
                     Trace.WriteLine("OK");
 
-                    Trace.Write($"Checking for already existing HTTPS binding for {hostName}...");
+                    Trace.Write($"Checking for already existing HTTPS binding for {hostName.ExplainHostName()}...");
                     var exists = bindings.Any(x => x.Host.Equals(hostName, StringComparison.OrdinalIgnoreCase) && x.Protocol.Equals("https", StringComparison.OrdinalIgnoreCase));
                     if (exists)
                         AcmeEnvironment.CrashExit("Binding already exists");
@@ -220,7 +220,7 @@ namespace Altairis.AutoAcme.IisSync {
                             b.SiteName,
                             b.SiteStarted,
                             b.Protocol,
-                            b.Host,
+                            b.Host.ExplainHostName(),
                             b.Address,
                             b.Port,
                             b.Sni,

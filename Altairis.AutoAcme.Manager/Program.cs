@@ -1,17 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
 using Altairis.AutoAcme.Configuration;
 using Altairis.AutoAcme.Core;
+
+using Certes.Acme;
+
 using NConsoler;
 
 namespace Altairis.AutoAcme.Manager {
     internal class Program {
-        private static readonly Uri DEFAULT_SERVER_URL = new Uri("https://acme-v01.api.letsencrypt.org/directory");
-        private static readonly Uri STAGING_SERVER_URL = new Uri("https://acme-staging.api.letsencrypt.org/directory");
+        private static readonly IdnMapping IDN_MAPPING = new IdnMapping();
 
         private static void Main(string[] args) {
             Trace.Listeners.Add(new ConsoleTraceListener());
@@ -110,9 +113,9 @@ namespace Altairis.AutoAcme.Manager {
                 Console.Write("> ");
                 var acmeServer = Console.ReadLine();
                 if (string.IsNullOrWhiteSpace(acmeServer)) {
-                    AcmeEnvironment.CfgStore.ServerUri = DEFAULT_SERVER_URL;
+                    AcmeEnvironment.CfgStore.ServerUri = WellKnownServers.LetsEncrypt;
                 } else if (acmeServer.Trim().Equals("staging", StringComparison.OrdinalIgnoreCase)) {
-                    AcmeEnvironment.CfgStore.ServerUri = STAGING_SERVER_URL;
+                    AcmeEnvironment.CfgStore.ServerUri = WellKnownServers.LetsEncryptStaging;
                 } else {
                     AcmeEnvironment.CfgStore.ServerUri = new Uri(acmeServer);
                 }
@@ -149,7 +152,7 @@ namespace Altairis.AutoAcme.Manager {
             AcmeEnvironment.VerboseMode = verbose;
             if (AcmeEnvironment.CfgStore == null)
                 AcmeEnvironment.LoadConfig(cfgFileName);
-            hostName = hostName.Trim().ToLower();
+            hostName = hostName.ToAsciiHostName();
 
             var result = AcmeContext.TestAuthorization(hostName, AcmeEnvironment.CreateChallenge, AcmeEnvironment.CleanupChallenge);
             Trace.WriteLine(string.Empty);
@@ -171,16 +174,16 @@ namespace Altairis.AutoAcme.Manager {
             AcmeEnvironment.VerboseMode = verbose;
             if (AcmeEnvironment.CfgStore == null)
                 AcmeEnvironment.LoadConfig(cfgFileName);
-            hostName = hostName.Trim().ToLower();
+            hostName = hostName.ToAsciiHostName();
 
             // Check if there already is host with this name
             Trace.Write("Checking host...");
             if (AcmeEnvironment.CfgStore.Hosts.Any(x => x.CommonName.Equals(hostName)))
-                AcmeEnvironment.CrashExit($"Host '{hostName}' is already managed.");
+                AcmeEnvironment.CrashExit($"Host '{hostName.ExplainHostName()}' is already managed.");
             Trace.WriteLine("OK");
 
             // Request certificate
-            Trace.WriteLine($"Requesting cerificate for {hostName}:");
+            Trace.WriteLine($"Requesting cerificate for {hostName.ExplainHostName()}:");
             Trace.Indent();
             CertificateRequestResult result = null;
             try {
@@ -266,13 +269,13 @@ namespace Altairis.AutoAcme.Manager {
             AcmeEnvironment.VerboseMode = verbose;
             if (AcmeEnvironment.CfgStore == null)
                 AcmeEnvironment.LoadConfig(cfgFileName);
-            hostName = hostName.Trim().ToLower();
+            hostName = hostName.ToAsciiHostName();
 
             // Check if there is host with this name
-            Trace.Write($"Finding host {hostName}...");
+            Trace.Write($"Finding host {hostName.ExplainHostName()}...");
             var host = AcmeEnvironment.CfgStore.Hosts.SingleOrDefault(x => x.CommonName.Equals(hostName));
             if (host == null)
-                AcmeEnvironment.CrashExit($"Host '{hostName}' was not found.");
+                AcmeEnvironment.CrashExit($"Host '{hostName.ExplainHostName()}' was not found.");
             Trace.WriteLine("OK");
 
             // Delete files
