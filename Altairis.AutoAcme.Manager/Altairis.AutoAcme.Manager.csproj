@@ -36,11 +36,11 @@
     <ApplicationIcon>AutoACME.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="BouncyCastle.Crypto, Version=1.8.3.0, Culture=neutral, PublicKeyToken=0e99375e54769942, processorArchitecture=MSIL">
-      <HintPath>..\packages\Portable.BouncyCastle.1.8.3\lib\net40\BouncyCastle.Crypto.dll</HintPath>
+    <Reference Include="BouncyCastle.Crypto, Version=1.8.4.0, Culture=neutral, PublicKeyToken=0e99375e54769942, processorArchitecture=MSIL">
+      <HintPath>..\packages\Portable.BouncyCastle.1.8.4\lib\net40\BouncyCastle.Crypto.dll</HintPath>
     </Reference>
-    <Reference Include="Certes, Version=2.3.0.0, Culture=neutral, PublicKeyToken=308b9c08e7effcb1, processorArchitecture=MSIL">
-      <HintPath>..\packages\Certes.2.3.0\lib\net45\Certes.dll</HintPath>
+    <Reference Include="Certes, Version=2.3.2.0, Culture=neutral, PublicKeyToken=308b9c08e7effcb1, processorArchitecture=MSIL">
+      <HintPath>..\packages\Certes.2.3.2\lib\net45\Certes.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="NConsoler, Version=2.0.0.0, Culture=neutral, PublicKeyToken=652faff55808657c, processorArchitecture=MSIL">

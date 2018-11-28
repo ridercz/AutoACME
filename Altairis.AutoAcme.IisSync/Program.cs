@@ -60,14 +60,14 @@ namespace Altairis.AutoAcme.IisSync {
 
                 // Find new hosts
                 Trace.Write("Finding new hosts to add...");
-                bindings = bindings.Where(x => !AcmeEnvironment.CfgStore.Hosts.Any(h => h.CommonName.Equals(x.Host, StringComparison.OrdinalIgnoreCase)));
+                bindings = bindings.Where(x => !AcmeEnvironment.CfgStore.Hosts.SelectMany(h => h.GetNames()).Any(h => h.Equals(x.Host, StringComparison.OrdinalIgnoreCase)));
                 if (!bindings.Any()) {
                     Trace.WriteLine("None");
                     return;
                 }
                 Trace.WriteLine($"OK");
 
-                using (var ac = new AcmeContext(AcmeEnvironment.CfgStore.ServerUri)) {
+                using (var ac = new AutoAcmeContext(AcmeEnvironment.CfgStore.ServerUri)) {
                     ac.ChallengeVerificationRetryCount = AcmeEnvironment.CfgStore.ChallengeVerificationRetryCount;
                     ac.ChallengeVerificationWait = TimeSpan.FromSeconds(AcmeEnvironment.CfgStore.ChallengeVerificationWaitSeconds);
 
@@ -82,69 +82,68 @@ namespace Altairis.AutoAcme.IisSync {
 
                     // Add new hosts
                     Trace.Indent();
-                    foreach (var binding in bindings.ToArray()) {
-                        // Check if was already added before
-                        if (AcmeEnvironment.CfgStore.Hosts.Any(h => h.CommonName.Equals(binding.Host, StringComparison.OrdinalIgnoreCase))) continue;
+                    using (var challengeManager = AcmeEnvironment.CreateChallengeManager()) {
+                        foreach (var binding in bindings.ToArray()) {
+                            // Check if was already added before
+                            if (AcmeEnvironment.CfgStore.Hosts.SelectMany(h => h.GetNames()).Any(h => h.Equals(binding.Host, StringComparison.OrdinalIgnoreCase))) continue;
 
-                        Trace.WriteLine($"Adding new host {binding.Host.ExplainHostName()}:");
-                        Trace.Indent();
+                            Trace.WriteLine($"Adding new host {binding.Host.ExplainHostName()}:");
+                            Trace.Indent();
 
-                        // Request certificate
-                        CertificateRequestResult result = null;
-                        try {
-                            result = ac.GetCertificate(
-                                hostName: binding.Host,
-                                pfxPassword: AcmeEnvironment.CfgStore.PfxPassword,
-                                challengeCallback: AcmeEnvironment.CreateChallenge,
-                                cleanupCallback: AcmeEnvironment.CleanupChallenge);
-                        }
-                        catch (Exception ex) {
-                            Trace.WriteLine($"Request failed: {ex.Message}");
-                            if (AcmeEnvironment.VerboseMode) {
-                                Trace.WriteLine(string.Empty);
-                                Trace.WriteLine(ex);
-                            }
-                            Trace.Unindent();
-                            continue;
-                        }
-
-                        // Export files
-                        Trace.WriteLine("Exporting files:");
-                        Trace.Indent();
-                        result.Export(binding.Host, AcmeEnvironment.CfgStore.PfxFolder, AcmeEnvironment.CfgStore.PemFolder);
-                        Trace.Unindent();
-
-                        // Update database entry
-                        Trace.Write("Updating database entry...");
-                        AcmeEnvironment.CfgStore.Hosts.Add(new Host {
-                            CommonName = binding.Host,
-                            NotBefore = result.Certificate.NotBefore,
-                            NotAfter = result.Certificate.NotAfter,
-                            SerialNumber = result.Certificate.SerialNumber,
-                            Thumbprint = result.Certificate.Thumbprint
-                        });
-                        Trace.WriteLine("OK");
-                        AcmeEnvironment.SaveConfig(cfgFileName);
-
-                        // Add HTTPS + CCS binding
-                        var alreadyHasHttpsWithCcs = bindings.Any(b =>
-                            b.Host.Equals(binding.Host, StringComparison.OrdinalIgnoreCase)
-                            && b.Protocol.Equals("https", StringComparison.OrdinalIgnoreCase)
-                            && b.CentralCertStore);
-                        if (addCcsBinding && !alreadyHasHttpsWithCcs) {
+                            // Request certificate
+                            CertificateRequestResult result = null;
                             try {
-                                Trace.Write($"Adding HTTPS CCS binding for {binding.Host.ExplainHostName()}...");
-                                sc.AddCcsBinding(binding.SiteName, binding.Host, requireSni);
-                                Trace.WriteLine("OK");
+                                result = ac.GetCertificate(new[] {binding.Host}, AcmeEnvironment.CfgStore.PfxPassword, challengeManager);
                             }
                             catch (Exception ex) {
-                                AcmeEnvironment.CrashExit(ex);
+                                Trace.WriteLine($"Request failed: {ex.Message}");
+                                if (AcmeEnvironment.VerboseMode) {
+                                    Trace.WriteLine(string.Empty);
+                                    Trace.WriteLine(ex);
+                                }
+                                Trace.Unindent();
+                                continue;
                             }
+
+                            // Export files
+                            Trace.WriteLine("Exporting files:");
+                            Trace.Indent();
+                            result.Export(binding.Host, AcmeEnvironment.CfgStore.PfxFolder, AcmeEnvironment.CfgStore.PemFolder);
+                            Trace.Unindent();
+
+                            // Update database entry
+                            Trace.Write("Updating database entry...");
+                            AcmeEnvironment.CfgStore.Hosts.Add(new Host {
+                                    CommonName = binding.Host,
+                                    NotBefore = result.Certificate.NotBefore,
+                                    NotAfter = result.Certificate.NotAfter,
+                                    SerialNumber = result.Certificate.SerialNumber,
+                                    Thumbprint = result.Certificate.Thumbprint
+                            });
+                            Trace.WriteLine("OK");
+                            AcmeEnvironment.SaveConfig(cfgFileName);
+
+                            // Add HTTPS + CCS binding
+                            var alreadyHasHttpsWithCcs = bindings.Any(b =>
+                                    b.Host.Equals(binding.Host, StringComparison.OrdinalIgnoreCase)
+                                    && b.Protocol.Equals("https", StringComparison.OrdinalIgnoreCase)
+                                    && b.CentralCertStore);
+                            if (addCcsBinding && !alreadyHasHttpsWithCcs) {
+                                try {
+                                    Trace.Write($"Adding HTTPS CCS binding for {binding.Host.ExplainHostName()}...");
+                                    sc.AddCcsBinding(binding.SiteName, binding.Host, requireSni);
+                                    Trace.WriteLine("OK");
+                                }
+                                catch (Exception ex) {
+                                    AcmeEnvironment.CrashExit(ex);
+                                }
+                            }
+
+                            Trace.Unindent();
                         }
 
                         Trace.Unindent();
                     }
-                    Trace.Unindent();
                 }
             }
         }
@@ -160,7 +159,8 @@ namespace Altairis.AutoAcme.IisSync {
 
             using (var sc = new ServerContext(serverName)) {
                 try {
-                    Trace.Write($"Getting bindings from {hostName.ExplainHostName()}...");
+                    
+                    Trace.Write($"Getting bindings from {serverName}...");
                     var bindings = sc.GetBindings().ToArray();
                     Trace.WriteLine("OK");
 

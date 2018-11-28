@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+
+using Certes;
 using Certes.Acme;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace Altairis.AutoAcme.Configuration {
     public class Store {
@@ -11,6 +14,12 @@ namespace Altairis.AutoAcme.Configuration {
         public string EmailAddress { get; set; } = "example@example.com";
 
         public string SerializedAccountData { get; set; }
+
+        public bool DnsChallenge { get; set; } = false;
+
+        public string DnsServer { get; set; }
+
+        public string DnsDomain { get; set; }
 
         public bool SelfHostChallenge { get; set; } = false;
 
@@ -24,7 +33,7 @@ namespace Altairis.AutoAcme.Configuration {
 
         public string PemFolder { get; set; }
 
-        public Uri ServerUri { get; set; } = WellKnownServers.LetsEncrypt;
+        public Uri ServerUri { get; set; } = WellKnownServers.LetsEncryptV2;
 
         public int ChallengeVerificationRetryCount { get; set; } = 10;
 
@@ -35,6 +44,9 @@ namespace Altairis.AutoAcme.Configuration {
         public int PurgeDaysAfterExpiration { get; set; } = 30;
 
         public bool AutoSaveConfigBackup { get; set; } = true;
+
+        [JsonConverter(typeof(StringEnumConverter))]
+        public KeyAlgorithm KeyAlgorithm { get; set; } = KeyAlgorithm.RS256;
 
         public IList<Host> Hosts { get; set; } = new List<Host>();
 
