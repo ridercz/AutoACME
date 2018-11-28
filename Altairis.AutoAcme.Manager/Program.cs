@@ -552,6 +552,8 @@ namespace Altairis.AutoAcme.Manager {
         // Helper methods
 
         private static void DeleteHostFiles(string hostName, string pfxFolder, string pemFolder) {
+            hostName = hostName.Replace('*', '_');
+
             // Prepare list of files to delete
             var filesToDelete = new List<string>();
             if (!string.IsNullOrWhiteSpace(pfxFolder)) {

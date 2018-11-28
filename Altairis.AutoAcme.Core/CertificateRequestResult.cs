@@ -14,6 +14,8 @@ namespace Altairis.AutoAcme.Core {
         public KeyInfo PrivateKey { get; set; }
 
         public void Export(string hostName, string pfxFolder, string pemFolder) {
+            hostName = hostName.Replace('*', '_');
+
             // Save to PFX file
             if (!string.IsNullOrWhiteSpace(pfxFolder)) {
                 var pfxFileName = Path.Combine(pfxFolder, hostName + ".pfx");

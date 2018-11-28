@@ -79,7 +79,7 @@ namespace Altairis.AutoAcme.Core.Challenges {
 
         public override async Task<bool> TestAsync(IEnumerable<string> hostNames) {
             try {
-                foreach (var hostName in hostNames) {
+                foreach (var hostName in hostNames.Select(n => n.StartsWith("*.") ? n.Substring(2) : n)) {
                     var acmeChallengeName = $"_acme-challenge.{hostName}";
                     // Test NS configuration of domain
                     var cnameQuery = await lookupClient.QueryAsync(acmeChallengeName, QueryType.CNAME).ConfigureAwait(false);

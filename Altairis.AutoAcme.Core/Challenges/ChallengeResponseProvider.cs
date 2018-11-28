@@ -33,7 +33,6 @@ namespace Altairis.AutoAcme.Core.Challenges {
             var records = new List<IDisposable>();
             var result = true;
             try {
-                Debugger.Break();
                 // Prepare challenges
                 var challenges = new Dictionary<Uri, IChallengeContext>();
                 foreach (var authorizationContext in authorizationContexts) {

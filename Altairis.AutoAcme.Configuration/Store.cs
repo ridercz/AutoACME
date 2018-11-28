@@ -5,6 +5,7 @@ using System.IO;
 using Certes;
 using Certes.Acme;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace Altairis.AutoAcme.Configuration {
     public class Store {
@@ -44,6 +45,7 @@ namespace Altairis.AutoAcme.Configuration {
 
         public bool AutoSaveConfigBackup { get; set; } = true;
 
+        [JsonConverter(typeof(StringEnumConverter))]
         public KeyAlgorithm KeyAlgorithm { get; set; } = KeyAlgorithm.RS256;
 
         public IList<Host> Hosts { get; set; } = new List<Host>();

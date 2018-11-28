@@ -17,7 +17,7 @@ namespace Altairis.AutoAcme.Core {
         public const string DEFAULT_CONFIG_NAME = "autoacme.json";
 
         private static readonly Regex RX_SPLIT = new Regex(@"\s+|\s*[;,]\s*", RegexOptions.Compiled | RegexOptions.CultureInvariant);
-        private static readonly Regex RX_CHECK = new Regex(@"^(((?!-))(xn--|_{1,1})?[a-z0-9-]{0,61}[a-z0-9]{1,1}\.)*(xn--)?([a-z0-9\-]{1,61}|[a-z0-9-]{1,30}\.[a-z]{2,})$", RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture);
+        private static readonly Regex RX_CHECK = new Regex(@"^(\*\.)?(((?!-))(xn--|_{1,1})?[a-z0-9-]{0,61}[a-z0-9]{1,1}\.)*(xn--)?([a-z0-9\-]{1,61}|[a-z0-9-]{1,30}\.[a-z]{2,})$", RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture);
         public static readonly IdnMapping IDN_MAPPING = new IdnMapping();
         public static bool VerboseMode;
         public static Store CfgStore;
