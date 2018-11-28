@@ -22,8 +22,13 @@ namespace Altairis.AutoAcme.Core {
         public static bool VerboseMode;
         public static Store CfgStore;
 
-        public static ChallengeResponseProvider CreateChallengeManager() {
+        public static IChallengeResponseProvider CreateChallengeManager() {
             try {
+                if (CfgStore.DnsChallenge && CfgStore.SelfHostChallenge) {
+                    return new FallbackChallengeResponseProvider(
+                                    new DnsChallengeResponseProvider(VerboseMode, CfgStore.DnsServer, CfgStore.DnsDomain),
+                                    new HttpChallengeHostedResponseProvider(VerboseMode, CfgStore.SelfHostUrlPrefix));
+                }
                 if (CfgStore.DnsChallenge) {
                     return new DnsChallengeResponseProvider(VerboseMode, CfgStore.DnsServer, CfgStore.DnsDomain);
                 }

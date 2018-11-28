@@ -51,11 +51,11 @@ namespace Altairis.AutoAcme.Core {
             }
         }
 
-        public CertificateRequestResult GetCertificate(IEnumerable<string> hostNames, string pfxPassword, ChallengeResponseProvider challengeManager, bool skipTest = false) {
+        public CertificateRequestResult GetCertificate(IEnumerable<string> hostNames, string pfxPassword, IChallengeResponseProvider challengeManager, bool skipTest = false) {
             return GetCertificateAsync(hostNames, pfxPassword, challengeManager, skipTest).Result;
         }
 
-        public async Task<CertificateRequestResult> GetCertificateAsync(IEnumerable<string> hostNames, string pfxPassword, ChallengeResponseProvider challengeManager, bool skipTest = false) {
+        public async Task<CertificateRequestResult> GetCertificateAsync(IEnumerable<string> hostNames, string pfxPassword, IChallengeResponseProvider challengeManager, bool skipTest = false) {
             if (challengeManager == null) throw new ArgumentNullException(nameof(challengeManager));
             if (client == null) throw new ObjectDisposedException(nameof(AutoAcmeContext));
             if (context == null) throw new InvalidOperationException("Not logged in");

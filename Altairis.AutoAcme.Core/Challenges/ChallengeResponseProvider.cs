@@ -9,7 +9,7 @@ using Certes.Acme;
 using Certes.Acme.Resource;
 
 namespace Altairis.AutoAcme.Core.Challenges {
-    public abstract class ChallengeResponseProvider: IDisposable {
+    public abstract class ChallengeResponseProvider: IChallengeResponseProvider {
         protected ChallengeResponseProvider(bool verboseMode) {
             VerboseMode = verboseMode;
         }
