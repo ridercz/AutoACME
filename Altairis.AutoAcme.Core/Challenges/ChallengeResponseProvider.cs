@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -9,13 +8,7 @@ using Certes.Acme;
 using Certes.Acme.Resource;
 
 namespace Altairis.AutoAcme.Core.Challenges {
-    public abstract class ChallengeResponseProvider: IDisposable {
-        protected ChallengeResponseProvider(bool verboseMode) {
-            VerboseMode = verboseMode;
-        }
-
-        public bool VerboseMode { get; }
-
+    public abstract class ChallengeResponseProvider: IChallengeResponseProvider {
         public abstract string ChallengeType { get; }
 
         public void Dispose() {
@@ -29,28 +22,33 @@ namespace Altairis.AutoAcme.Core.Challenges {
 
         public async Task<bool> ValidateAsync(AutoAcmeContext context, IEnumerable<IAuthorizationContext> authorizationContexts) {
             // Get challenge
-            Trace.Write("Getting challenge...");
-            var records = new List<IDisposable>();
+            Log.WriteLine("Getting challenge...");
+            var handlers = new List<IDisposable>();
             var result = true;
             try {
                 // Prepare challenges
                 var challenges = new Dictionary<Uri, IChallengeContext>();
+                Log.Indent();
                 foreach (var authorizationContext in authorizationContexts) {
-                    var authorization = await authorizationContext.Resource().ConfigureAwait(false);
-                    Trace.WriteLine("OK, the following is DNS name:");
-                    Trace.WriteLine(authorization.Identifier.Value);
-                    var ch = await authorizationContext.Challenge(ChallengeType).ConfigureAwait(false);
-                    var challenge = await CreateChallengeHandler(ch, authorization.Identifier.Value, context.AccountKey).ConfigureAwait(false);
-                    records.Add(challenge);
+                    var authorization = await authorizationContext.Resource().ConfigureAwait(true);
+                    Log.WriteLine("OK, the following is DNS name:");
+                    Log.Indent();
+                    Log.WriteLine(authorization.Identifier.Value);
+                    var ch = await authorizationContext.Challenge(ChallengeType).ConfigureAwait(true);
+                    var handler = await CreateChallengeHandler(ch, authorization.Identifier.Value, context.AccountKey).ConfigureAwait(true);
+                    Log.Unindent();
+                    handlers.Add(handler);
                     challenges.Add(ch.Location, ch);
                 }
-                Trace.Write("Completing challenge");
+                Log.Unindent();
+                Log.Write("Completing challenge");
+                var challengeTasks = challenges.Values.Select(ch => ch.Validate());
                 for (var i = 0; i < context.ChallengeVerificationRetryCount; i++) {
-                    Trace.Write(".");
-                    foreach (var challenge in await Task.WhenAll(challenges.Values.Select(ch => ch.Validate())).ConfigureAwait(false)) {
+                    Log.Write(".");
+                    foreach (var challenge in await Task.WhenAll(challengeTasks).ConfigureAwait(true)) {
                         switch (challenge.Status) {
                             case ChallengeStatus.Invalid:
-                                Trace.WriteLine($"Challenge {challenge.Status}: {challenge.Url} {challenge.Error?.Detail}");
+                                Log.WriteLine($"Challenge {challenge.Status}: {challenge.Url} {challenge.Error?.Detail}");
                                 challenges.Remove(challenge.Url);
                                 result = false;
                                 break;
@@ -62,20 +60,26 @@ namespace Altairis.AutoAcme.Core.Challenges {
                     if (challenges.Count == 0) {
                         break;
                     }
-                    await Task.Delay(context.ChallengeVerificationWait).ConfigureAwait(false);
+                    await Task.Delay(context.ChallengeVerificationWait).ConfigureAwait(true);
+                    challengeTasks = challenges.Values.Select(ch => ch.Resource());
                 }
                 // Complete challenge
-                Trace.WriteLine(result ? "OK" : "Failed");
+                Log.WriteLine(result ? "OK" : "Failed");
                 return result;
             }
             catch (Exception ex) {
-                Trace.WriteLine("Challenge exception:");
-                Trace.WriteLine(ex.ToString());
+                Log.WriteLine("Challenge exception:");
+                Log.WriteLine(ex.ToString());
                 return false;
             }
             finally {
-                foreach (var record in records) {
-                    record.Dispose();
+                foreach (var handler in handlers) {
+                    try {
+                        handler.Dispose();
+                    }
+                    catch (Exception ex) {
+                        Log.WriteLine("Error on challenge response disposal (maybe requires manual cleanup): "+ex.Message);
+                    }
                 }
             }
         }

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
@@ -21,14 +20,13 @@ namespace Altairis.AutoAcme.Core.Challenges {
         }
 
         private readonly Dictionary<string, string> authStrings = new Dictionary<string, string>(StringComparer.Ordinal);
-
         private readonly HttpListener listener;
 
-        public HttpChallengeHostedResponseProvider(bool verboseMode, string urlPrefix): base(verboseMode) {
+        public HttpChallengeHostedResponseProvider(string urlPrefix): base() {
             listener = new HttpListener();
             listener.Prefixes.Add(urlPrefix);
             listener.Start();
-            Trace.WriteLine("Listening on "+urlPrefix);
+            Log.WriteLine("Listening on "+urlPrefix);
             listener.GetContextAsync().ContinueWith(HandleRequest, TaskContinuationOptions.OnlyOnRanToCompletion);
         }
 
@@ -49,7 +47,8 @@ namespace Altairis.AutoAcme.Core.Challenges {
             listener.GetContextAsync().ContinueWith(HandleRequest, TaskContinuationOptions.OnlyOnRanToCompletion);
             var request = task.Result.Request;
             var response = task.Result.Response;
-            Trace.WriteLine("Handling request from "+request.RemoteEndPoint.Address);
+            Log.AssertNewLine();
+            Log.WriteLine($"(Handling request from {request.RemoteEndPoint.Address})");
             var tokenId = request.Url.AbsolutePath.Substring(request.Url.AbsolutePath.LastIndexOf('/')+1);
             string authString;
             if (!authStrings.TryGetValue(tokenId, out authString)) {
