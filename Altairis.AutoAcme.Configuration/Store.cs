@@ -35,9 +35,9 @@ namespace Altairis.AutoAcme.Configuration {
 
         public Uri ServerUri { get; set; } = WellKnownServers.LetsEncryptV2;
 
-        public int ChallengeVerificationRetryCount { get; set; } = 10;
+        public int ChallengeVerificationRetryCount { get; set; } = 20;
 
-        public int ChallengeVerificationWaitSeconds { get; set; } = 5;
+        public int ChallengeVerificationWaitSeconds { get; set; } = 6;
 
         public int RenewDaysBeforeExpiration { get; set; } = 30;
 
