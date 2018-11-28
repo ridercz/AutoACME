@@ -19,17 +19,29 @@ namespace Altairis.AutoAcme.Core.Challenges {
                 return Task.FromResult(false);
             }
             var provider = providers[index];
-            Trace.Write("Validate via "+provider.ChallengeType+"...");
-            return provider.ValidateAsync(context, authorizationContexts);
+            Log.WriteLine("Validate via "+provider.ChallengeType+"...");
+            Log.Indent();
+            try {
+                return provider.ValidateAsync(context, authorizationContexts);
+            }
+            finally {
+                Log.Unindent();
+            }
         }
 
         public async Task<bool> TestAsync(IEnumerable<string> hostNames) {
             index = 0;
             while (index < providers.Length) {
                 var provider = providers[index];
-                Trace.Write("Testing "+provider.ChallengeType+"...");
-                if (await provider.TestAsync(hostNames).ConfigureAwait(false)) {
-                    return true;
+                Log.WriteLine($"Testing {provider.ChallengeType}...");
+                Log.Indent();
+                try {
+                    if (await provider.TestAsync(hostNames).ConfigureAwait(true)) {
+                        return true;
+                    }
+                }
+                finally {
+                    Log.Unindent();
                 }
                 index++;
             }

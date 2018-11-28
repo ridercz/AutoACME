@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.IO;
 using System.Security.Cryptography.X509Certificates;
 using Certes.Pkcs;
@@ -19,9 +18,9 @@ namespace Altairis.AutoAcme.Core {
             // Save to PFX file
             if (!string.IsNullOrWhiteSpace(pfxFolder)) {
                 var pfxFileName = Path.Combine(pfxFolder, hostName + ".pfx");
-                Trace.Write($"Saving PFX to {pfxFileName}...");
+                Log.Write($"Saving PFX to {pfxFileName}...");
                 File.WriteAllBytes(pfxFileName, this.PfxData);
-                Trace.WriteLine("OK");
+                Log.WriteLine("OK");
             }
 
             // Save to PEM file
@@ -29,19 +28,19 @@ namespace Altairis.AutoAcme.Core {
                 var pemFileName = Path.Combine(pemFolder, hostName + ".pem");
                 var crtFileName = Path.Combine(pemFolder, hostName + ".crt");
 
-                Trace.Write($"Saving PEM to {pemFileName}...");
+                Log.Write($"Saving PEM to {pemFileName}...");
                 using (var f = File.Create(pemFileName)) {
                     this.PrivateKey.Save(f);
                 }
-                Trace.WriteLine("OK");
+                Log.WriteLine("OK");
 
-                Trace.Write($"Saving CRT to {crtFileName}...");
+                Log.Write($"Saving CRT to {crtFileName}...");
                 using (var f = File.CreateText(crtFileName)) {
                     f.WriteLine("-----BEGIN CERTIFICATE-----");
                     f.WriteLine(Convert.ToBase64String(this.Certificate.GetRawCertData(), Base64FormattingOptions.InsertLineBreaks));
                     f.WriteLine("-----END CERTIFICATE-----");
                 }
-                Trace.WriteLine("OK");
+                Log.WriteLine("OK");
             }
         }
 

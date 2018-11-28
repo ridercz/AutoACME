@@ -13,12 +13,11 @@ namespace Altairis.AutoAcme.IisSync {
     class Program {
         static void Main(string[] args) {
             Trace.Listeners.Add(new ConsoleTraceListener());
-            Trace.IndentSize = 2;
 
-            Trace.WriteLine($"Altairis AutoACME IIS Synchronization Tool version {System.Reflection.Assembly.GetExecutingAssembly().GetName().Version}");
-            Trace.WriteLine("Copyright (c) Michal A. Valasek - Altairis, 2017");
-            Trace.WriteLine("www.autoacme.net | www.rider.cz | www.altairis.cz");
-            Trace.WriteLine(string.Empty);
+            Log.WriteLine($"Altairis AutoACME IIS Synchronization Tool version {System.Reflection.Assembly.GetExecutingAssembly().GetName().Version}");
+            Log.WriteLine("Copyright (c) Michal A. Valasek - Altairis, 2017");
+            Log.WriteLine("www.autoacme.net | www.rider.cz | www.altairis.cz");
+            Log.WriteLine();
 
             Consolery.Run();
         }
@@ -27,18 +26,23 @@ namespace Altairis.AutoAcme.IisSync {
 
         [Action("Add hosts from IIS bindings.")]
         public static void AddHosts(
-            [Optional(false, "ccs", Description = "Add CCS binding to hosts without one and add them as well")] bool addCcsBinding,
-            [Optional(false, "sni", Description = "Require SNI for newly created bindings")] bool requireSni,
-            [Optional("localhost", "s", Description = "IIS server name")] string serverName,
-            [Optional(AcmeEnvironment.DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")] string cfgFileName,
-            [Optional(false, Description = "Show verbose error messages")] bool verbose) {
-            AcmeEnvironment.VerboseMode = verbose;
+            [Optional(false, "ccs", Description = "Add CCS binding to hosts without one and add them as well")]
+            bool addCcsBinding,
+            [Optional(false, "sni", Description = "Require SNI for newly created bindings")]
+            bool requireSni,
+            [Optional("localhost", "s", Description = "IIS server name")]
+            string serverName,
+            [Optional(AcmeEnvironment.DEFAULT_CONFIG_NAME, "cfg", Description = "Configuration file name")]
+            string cfgFileName,
+            [Optional(false, Description = "Show verbose error messages")]
+            bool verbose) {
+            Log.VerboseMode = verbose;
             AcmeEnvironment.LoadConfig(cfgFileName);
 
             using (var sc = new ServerContext(serverName)) {
                 IEnumerable<BindingInfo> bindings = null;
                 try {
-                    Trace.Write($"Getting bindings from '{serverName}'...");
+                    Log.Write($"Getting bindings from '{serverName}'...");
                     // Get all bindings
                     bindings = sc.GetBindings();
                 }
@@ -56,16 +60,16 @@ namespace Altairis.AutoAcme.IisSync {
 
                 // Get only CCS enabled sites, unless overriden
                 if (!addCcsBinding) bindings = bindings.Where(x => x.CentralCertStore);
-                Trace.WriteLine($"OK, {bindings.Count()} bindings found");
+                Log.WriteLine($"OK, {bindings.Count()} bindings found");
 
                 // Find new hosts
-                Trace.Write("Finding new hosts to add...");
+                Log.Write("Finding new hosts to add...");
                 bindings = bindings.Where(x => !AcmeEnvironment.CfgStore.Hosts.SelectMany(h => h.GetNames()).Any(h => h.Equals(x.Host, StringComparison.OrdinalIgnoreCase)));
                 if (!bindings.Any()) {
-                    Trace.WriteLine("None");
+                    Log.WriteLine("None");
                     return;
                 }
-                Trace.WriteLine($"OK");
+                Log.WriteLine($"OK");
 
                 using (var ac = new AutoAcmeContext(AcmeEnvironment.CfgStore.ServerUri)) {
                     ac.ChallengeVerificationRetryCount = AcmeEnvironment.CfgStore.ChallengeVerificationRetryCount;
@@ -81,14 +85,14 @@ namespace Altairis.AutoAcme.IisSync {
                     }
 
                     // Add new hosts
-                    Trace.Indent();
+                    Log.Indent();
                     using (var challengeManager = AcmeEnvironment.CreateChallengeManager()) {
                         foreach (var binding in bindings.ToArray()) {
                             // Check if was already added before
                             if (AcmeEnvironment.CfgStore.Hosts.SelectMany(h => h.GetNames()).Any(h => h.Equals(binding.Host, StringComparison.OrdinalIgnoreCase))) continue;
 
-                            Trace.WriteLine($"Adding new host {binding.Host.ExplainHostName()}:");
-                            Trace.Indent();
+                            Log.WriteLine($"Adding new host {binding.Host.ExplainHostName()}:");
+                            Log.Indent();
 
                             // Request certificate
                             CertificateRequestResult result = null;
@@ -96,23 +100,18 @@ namespace Altairis.AutoAcme.IisSync {
                                 result = ac.GetCertificate(new[] {binding.Host}, AcmeEnvironment.CfgStore.PfxPassword, challengeManager);
                             }
                             catch (Exception ex) {
-                                Trace.WriteLine($"Request failed: {ex.Message}");
-                                if (AcmeEnvironment.VerboseMode) {
-                                    Trace.WriteLine(string.Empty);
-                                    Trace.WriteLine(ex);
-                                }
-                                Trace.Unindent();
+                                Log.Exception(ex, "Request failed");
                                 continue;
                             }
 
                             // Export files
-                            Trace.WriteLine("Exporting files:");
-                            Trace.Indent();
+                            Log.WriteLine("Exporting files:");
+                            Log.Indent();
                             result.Export(binding.Host, AcmeEnvironment.CfgStore.PfxFolder, AcmeEnvironment.CfgStore.PemFolder);
-                            Trace.Unindent();
+                            Log.Unindent();
 
                             // Update database entry
-                            Trace.Write("Updating database entry...");
+                            Log.Write("Updating database entry...");
                             AcmeEnvironment.CfgStore.Hosts.Add(new Host {
                                     CommonName = binding.Host,
                                     NotBefore = result.Certificate.NotBefore,
@@ -120,7 +119,7 @@ namespace Altairis.AutoAcme.IisSync {
                                     SerialNumber = result.Certificate.SerialNumber,
                                     Thumbprint = result.Certificate.Thumbprint
                             });
-                            Trace.WriteLine("OK");
+                            Log.WriteLine("OK");
                             AcmeEnvironment.SaveConfig(cfgFileName);
 
                             // Add HTTPS + CCS binding
@@ -130,19 +129,19 @@ namespace Altairis.AutoAcme.IisSync {
                                     && b.CentralCertStore);
                             if (addCcsBinding && !alreadyHasHttpsWithCcs) {
                                 try {
-                                    Trace.Write($"Adding HTTPS CCS binding for {binding.Host.ExplainHostName()}...");
+                                    Log.Write($"Adding HTTPS CCS binding for {binding.Host.ExplainHostName()}...");
                                     sc.AddCcsBinding(binding.SiteName, binding.Host, requireSni);
-                                    Trace.WriteLine("OK");
+                                    Log.WriteLine("OK");
                                 }
                                 catch (Exception ex) {
                                     AcmeEnvironment.CrashExit(ex);
                                 }
                             }
 
-                            Trace.Unindent();
+                            Log.Unindent();
                         }
 
-                        Trace.Unindent();
+                        Log.Unindent();
                     }
                 }
             }
@@ -150,35 +149,39 @@ namespace Altairis.AutoAcme.IisSync {
 
         [Action("Adds HTTPS CCS binding for site with HTTP one for given host name")]
         public static void AddCcsBinding(
-            [Required(Description = "Host name")] string hostName,
-            [Optional(false, "sni", Description = "Require SNI for newly created binding")] bool requireSni,
-            [Optional("localhost", "s", Description = "IIS server name")] string serverName,
-            [Optional(false, Description = "Show verbose error messages")] bool verbose) {
-            AcmeEnvironment.VerboseMode = verbose;
+            [Required(Description = "Host name")]
+            string hostName,
+            [Optional(false, "sni", Description = "Require SNI for newly created binding")]
+            bool requireSni,
+            [Optional("localhost", "s", Description = "IIS server name")]
+            string serverName,
+            [Optional(false, Description = "Show verbose error messages")]
+            bool verbose) {
+            Log.VerboseMode = verbose;
             hostName = hostName.ToAsciiHostName();
 
             using (var sc = new ServerContext(serverName)) {
                 try {
                     
-                    Trace.Write($"Getting bindings from {serverName}...");
+                    Log.Write($"Getting bindings from {serverName}...");
                     var bindings = sc.GetBindings().ToArray();
-                    Trace.WriteLine("OK");
+                    Log.WriteLine("OK");
 
-                    Trace.Write($"Checking for already existing HTTPS binding for {hostName.ExplainHostName()}...");
+                    Log.Write($"Checking for already existing HTTPS binding for {hostName.ExplainHostName()}...");
                     var exists = bindings.Any(x => x.Host.Equals(hostName, StringComparison.OrdinalIgnoreCase) && x.Protocol.Equals("https", StringComparison.OrdinalIgnoreCase));
                     if (exists)
                         AcmeEnvironment.CrashExit("Binding already exists");
-                    Trace.WriteLine("OK");
+                    Log.WriteLine("OK");
 
-                    Trace.Write("Getting site...");
+                    Log.Write("Getting site...");
                     var site = bindings.FirstOrDefault(x => x.Host.Equals(hostName, StringComparison.OrdinalIgnoreCase) && x.Protocol.Equals("http", StringComparison.OrdinalIgnoreCase));
                     if (site == null)
                         AcmeEnvironment.CrashExit("HTTP binding not found");
-                    Trace.WriteLine($"OK, found site '{site.SiteName}', ID {site.SiteId}");
+                    Log.WriteLine($"OK, found site '{site.SiteName}', ID {site.SiteId}");
 
-                    Trace.Write("Adding new binding...");
+                    Log.Write("Adding new binding...");
                     sc.AddCcsBinding(site.SiteName, hostName, requireSni);
-                    Trace.WriteLine("OK");
+                    Log.WriteLine("OK");
 
                 }
                 catch (Exception ex) {
@@ -190,16 +193,21 @@ namespace Altairis.AutoAcme.IisSync {
 
         [Action("List IIS site bindings.")]
         public static void List(
-            [Optional(null, "f", Description = "Save to file")] string fileName,
-            [Optional(false, "xh", Description = "Do not list column headers")] bool skipHeaders,
-            [Optional("TAB", "cs", Description = "Column separator")] string columnSeparator,
-            [Optional("localhost", "s", Description = "IIS server name")] string serverName,
-            [Optional(false, Description = "Show verbose error messages")] bool verbose) {
-            AcmeEnvironment.VerboseMode = verbose;
+            [Optional(null, "f", Description = "Save to file")]
+            string fileName,
+            [Optional(false, "xh", Description = "Do not list column headers")]
+            bool skipHeaders,
+            [Optional("TAB", "cs", Description = "Column separator")]
+            string columnSeparator,
+            [Optional("localhost", "s", Description = "IIS server name")]
+            string serverName,
+            [Optional(false, Description = "Show verbose error messages")]
+            bool verbose) {
+            Log.VerboseMode = verbose;
             if (columnSeparator.Equals("TAB", StringComparison.OrdinalIgnoreCase)) columnSeparator = "\t";
 
             try {
-                Trace.Write("Getting bindings...");
+                Log.Write("Getting bindings...");
                 int count = 0;
                 var sb = new StringBuilder();
                 if (!skipHeaders) sb.AppendLine(string.Join(columnSeparator,
@@ -229,22 +237,20 @@ namespace Altairis.AutoAcme.IisSync {
                         count++;
                     }
                 }
-                Trace.WriteLine($"OK, {count} bindings");
+                Log.WriteLine($"OK, {count} bindings");
 
                 if (string.IsNullOrWhiteSpace(fileName)) {
-                    Trace.WriteLine(sb);
+                    Log.WriteLine(sb.ToString());
                 }
                 else {
-                    Trace.Write($"Writing to file '{fileName}'...");
+                    Log.Write($"Writing to file '{fileName}'...");
                     File.WriteAllText(fileName, sb.ToString());
-                    Trace.WriteLine("OK");
+                    Log.WriteLine("OK");
                 }
             }
             catch (Exception ex) {
                 AcmeEnvironment.CrashExit(ex);
             }
         }
-
-        // Helper methods
     }
 }

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -20,73 +19,68 @@ namespace Altairis.AutoAcme.Core.Challenges {
             var result = true;
             try {
                 // Prepare request
-                Trace.Write($"Preparing request to {uri}...");
+                Log.Write($"Preparing request to {uri}...");
                 var rq = WebRequest.CreateHttp(uri);
                 rq.AllowAutoRedirect = true;
                 rq.ServerCertificateValidationCallback += (sender, certificate, chain, sslPolicyErrors) => { return true; };
-                Trace.WriteLine("OK");
+                Log.WriteLine("OK");
 
                 // Get response
-                Trace.Write("Getting response...");
-                using (var rp = await rq.GetResponseAsync().ConfigureAwait(false) as HttpWebResponse) {
-                    Trace.WriteLine("OK");
-                    Trace.Write("Reading response...");
+                Log.Write("Getting response...");
+                using (var rp = await rq.GetResponseAsync().ConfigureAwait(true) as HttpWebResponse) {
+                    Log.WriteLine("OK");
+                    Log.Write("Reading response...");
                     string responseText;
                     using (var s = rp.GetResponseStream())
                     using (var tr = new StreamReader(s)) {
-                        responseText = await tr.ReadToEndAsync().ConfigureAwait(false);
-                        Trace.WriteLine("OK");
+                        responseText = await tr.ReadToEndAsync().ConfigureAwait(true);
+                        Log.WriteLine("OK");
                     }
-                    Trace.Indent();
+                    Log.Indent();
 
                     // Analyze response headers
                     if (rp.StatusCode == HttpStatusCode.OK) {
-                        Trace.WriteLine("OK: Status code 200");
+                        Log.WriteLine("OK: Status code 200");
                     } else {
-                        Trace.WriteLine($"ERROR: Response contains status code {rp.StatusCode}. Expecting 200 (OK).");
+                        Log.WriteLine($"ERROR: Response contains status code {rp.StatusCode}. Expecting 200 (OK).");
                         result = false;
                     }
                     if (!rp.Headers.AllKeys.Contains("Content-Type", StringComparer.OrdinalIgnoreCase)) {
-                        Trace.WriteLine("OK: No Content-Type header");
+                        Log.WriteLine("OK: No Content-Type header");
                     } else if (rp.ContentType.Equals("text/json")) {
-                        Trace.WriteLine("OK: Content-Type header");
+                        Log.WriteLine("OK: Content-Type header");
                     } else {
-                        Trace.WriteLine($"ERROR: Response contains Content-Type {rp.ContentType}. This header must either be 'text/json' or be missing.");
+                        Log.WriteLine($"ERROR: Response contains Content-Type {rp.ContentType}. This header must either be 'text/json' or be missing.");
                         result = false;
                     }
 
                     // Analyze response contents
                     if (expectedValue.Equals(responseText)) {
-                        Trace.WriteLine("OK: Expected response received");
+                        Log.WriteLine("OK: Expected response received");
                     } else {
-                        Trace.WriteLine($"ERROR: Invalid response content. Expected '{expectedValue}', got the following:");
-                        Trace.WriteLine(responseText);
+                        Log.WriteLine($"ERROR: Invalid response content. Expected '{expectedValue}', got the following:");
+                        Log.WriteLine(responseText);
                         result = false;
                     }
-                    Trace.Unindent();
+                    Log.Unindent();
                 }
             }
             catch (Exception ex) {
-                Trace.WriteLine("Failed!");
-                Trace.WriteLine(ex.Message);
+                Log.Exception(ex, "Failed");
                 result = false;
             }
             return result;
         }
-
-        protected HttpChallengeResponseProvider(bool verboseMode): base(verboseMode) { }
 
         public override string ChallengeType => ChallengeTypes.Http01;
 
         protected abstract IDisposable CreateChallengeHandler(string tokenId, string authString);
 
         protected sealed override Task<IDisposable> CreateChallengeHandler(IChallengeContext ch, string hostName, IKey accountKey) {
-            if (VerboseMode) {
-                Trace.Indent();
-                Trace.WriteLine("Key:");
-                Trace.WriteLine(ch.KeyAuthz);
-                Trace.Unindent();
-            }
+            Log.Indent();
+            Log.WriteVerboseLine("Key:");
+            Log.WriteVerboseLine(ch.KeyAuthz);
+            Log.Unindent();
             return Task.FromResult(CreateChallengeHandler(ch.Token, ch.KeyAuthz));
         }
 
@@ -99,18 +93,18 @@ namespace Altairis.AutoAcme.Core.Challenges {
             using (CreateChallengeHandler(challengeName, challengeValue)) {
                 foreach (var hostName in hostNames) {
                     // Try to access the file via HTTP
-                    Trace.WriteLine("Testing HTTP challenge:");
-                    Trace.Indent();
+                    Log.WriteLine("Testing HTTP challenge:");
+                    Log.Indent();
                     var httpUri = $"http://{hostName}/.well-known/acme-challenge/{challengeName}";
-                    var result = await CompareTestChallengeAsync(httpUri, challengeValue).ConfigureAwait(false);
-                    Trace.Unindent();
+                    var result = await CompareTestChallengeAsync(httpUri, challengeValue).ConfigureAwait(true);
+                    Log.Unindent();
                     if (!result) {
                         // Try to access the file via HTTPS
-                        Trace.WriteLine("Testing HTTPS challenge:");
-                        Trace.Indent();
+                        Log.WriteLine("Testing HTTPS challenge:");
+                        Log.Indent();
                         var httpsUri = $"https://{hostName}/.well-known/acme-challenge/{challengeName}";
-                        result = await CompareTestChallengeAsync(httpsUri, challengeValue).ConfigureAwait(false);
-                        Trace.Unindent();
+                        result = await CompareTestChallengeAsync(httpsUri, challengeValue).ConfigureAwait(true);
+                        Log.Unindent();
                     }
                     if (!result) {
                         return false;

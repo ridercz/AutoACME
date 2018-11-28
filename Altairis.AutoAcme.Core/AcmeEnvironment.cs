@@ -19,23 +19,22 @@ namespace Altairis.AutoAcme.Core {
         private static readonly Regex RX_SPLIT = new Regex(@"\s+|\s*[;,]\s*", RegexOptions.Compiled | RegexOptions.CultureInvariant);
         private static readonly Regex RX_CHECK = new Regex(@"^(\*\.)?(((?!-))(xn--|_{1,1})?[a-z0-9-]{0,61}[a-z0-9]{1,1}\.)*(xn--)?([a-z0-9\-]{1,61}|[a-z0-9-]{1,30}\.[a-z]{2,})$", RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture);
         public static readonly IdnMapping IDN_MAPPING = new IdnMapping();
-        public static bool VerboseMode;
         public static Store CfgStore;
 
         public static IChallengeResponseProvider CreateChallengeManager() {
             try {
                 if (CfgStore.DnsChallenge && CfgStore.SelfHostChallenge) {
                     return new FallbackChallengeResponseProvider(
-                                    new DnsChallengeResponseProvider(VerboseMode, CfgStore.DnsServer, CfgStore.DnsDomain),
-                                    new HttpChallengeHostedResponseProvider(VerboseMode, CfgStore.SelfHostUrlPrefix));
+                            new DnsChallengeResponseProvider(CfgStore.DnsServer, CfgStore.DnsDomain),
+                            new HttpChallengeHostedResponseProvider(CfgStore.SelfHostUrlPrefix));
                 }
                 if (CfgStore.DnsChallenge) {
-                    return new DnsChallengeResponseProvider(VerboseMode, CfgStore.DnsServer, CfgStore.DnsDomain);
+                    return new DnsChallengeResponseProvider(CfgStore.DnsServer, CfgStore.DnsDomain);
                 }
                 if (CfgStore.SelfHostChallenge) {
-                    return new HttpChallengeHostedResponseProvider(VerboseMode, CfgStore.SelfHostUrlPrefix);
+                    return new HttpChallengeHostedResponseProvider(CfgStore.SelfHostUrlPrefix);
                 }
-                return new HttpChallengeFileResponseProvider(VerboseMode, CfgStore.ChallengeFolder);
+                return new HttpChallengeFileResponseProvider(CfgStore.ChallengeFolder);
             }
             catch (Exception ex) {
                 CrashExit(ex);
@@ -48,9 +47,9 @@ namespace Altairis.AutoAcme.Core {
                 cfgFileName = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), DEFAULT_CONFIG_NAME);
             }
             try {
-                Trace.Write($"Reading configuration from '{cfgFileName}'...");
+                Log.Write($"Reading configuration from '{cfgFileName}'...");
                 CfgStore = Store.Load(cfgFileName);
-                Trace.WriteLine("OK");
+                Log.WriteLine("OK");
             }
             catch (Exception ex) {
                 CrashExit(ex);
@@ -62,9 +61,9 @@ namespace Altairis.AutoAcme.Core {
                 cfgFileName = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), DEFAULT_CONFIG_NAME);
             }
             try {
-                Trace.Write($"Saving configuration to '{cfgFileName}'...");
+                Log.Write($"Saving configuration to '{cfgFileName}'...");
                 CfgStore.Save(cfgFileName);
-                Trace.WriteLine("OK");
+                Log.WriteLine("OK");
             }
             catch (Exception ex) {
                 CrashExit(ex);
@@ -72,32 +71,13 @@ namespace Altairis.AutoAcme.Core {
         }
 
         public static void CrashExit(string message) {
-            Trace.WriteLine("Failed!");
-            Trace.WriteLine(message);
+            Log.WriteLine("Failed!");
+            Log.WriteLine(message);
             Environment.Exit(ERRORLEVEL_FAILURE);
         }
 
         public static void CrashExit(Exception ex) {
-            Trace.WriteLine("Failed!");
-
-            var aex = ex as AggregateException;
-            if (aex == null) {
-                Trace.WriteLine(ex.Message);
-                if (VerboseMode) {
-                    Trace.WriteLine(string.Empty);
-                    Trace.WriteLine(ex);
-                }
-            } else {
-                Trace.WriteLine("Warning!");
-                foreach (var iaex in aex.Flatten().InnerExceptions) {
-                    Trace.WriteLine(iaex.Message);
-                    if (VerboseMode) {
-                        Trace.WriteLine(string.Empty);
-                        Trace.WriteLine(iaex);
-                    }
-                }
-            }
-
+            Log.Exception(ex, "Failed");
             Environment.Exit(ERRORLEVEL_FAILURE);
         }
 
@@ -105,9 +85,7 @@ namespace Altairis.AutoAcme.Core {
 
         public static IEnumerable<string> SplitNames(this string hostNames) { return RX_SPLIT.Split(hostNames); }
 
-        public static string ToAsciiHostNames(this string hostNames) {
-            return string.Join(" ", RX_SPLIT.Split(hostNames.Trim()).Select(ToAsciiHostName));
-        }
+        public static string ToAsciiHostNames(this string hostNames) { return string.Join(" ", RX_SPLIT.Split(hostNames.Trim()).Select(ToAsciiHostName)); }
 
         public static string ToAsciiHostName(this string hostName) {
             var result = IDN_MAPPING.GetAscii(hostName.Trim().ToLowerInvariant().Normalize());
