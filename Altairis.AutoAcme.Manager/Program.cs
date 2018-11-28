@@ -169,7 +169,7 @@ namespace Altairis.AutoAcme.Manager {
 
         [Action("Add new host to manage.")]
         public static void AddHost(
-                [Required(Description = "Host name")] string hostName,
+                [Required(Description = "Host name (multiple names allowed)")] string hostNames,
                 [Optional(false, "xt", Description = "Skip authentication test")]
                 bool skipTest,
                 [Optional(null, "cfg", Description = "Custom configuration file name")]
@@ -179,16 +179,19 @@ namespace Altairis.AutoAcme.Manager {
             AcmeEnvironment.VerboseMode = verbose;
             if (AcmeEnvironment.CfgStore == null)
                 AcmeEnvironment.LoadConfig(cfgFileName);
-            hostName = hostName.ToAsciiHostName();
-
+            hostNames = hostNames.ToAsciiHostNames();
+            
             // Check if there already is host with this name
             Trace.Write("Checking host...");
-            if (AcmeEnvironment.CfgStore.Hosts.Any(x => x.CommonName.Equals(hostName)))
-                AcmeEnvironment.CrashExit($"Host '{hostName.ExplainHostName()}' is already managed.");
+            var existingHostnames = new HashSet<string>(AcmeEnvironment.CfgStore.Hosts.SelectMany(h => h.GetNames()), StringComparer.OrdinalIgnoreCase);
+            foreach (var hostName in hostNames.SplitNames()) {
+                if (existingHostnames.Contains(hostName))
+                    AcmeEnvironment.CrashExit($"Host '{hostName.ExplainHostName()}' is already managed.");
+            }
             Trace.WriteLine("OK");
 
             // Request certificate
-            Trace.WriteLine($"Requesting cerificate for {hostName.ExplainHostName()}:");
+            Trace.WriteLine($"Requesting certificate for {hostNames}:");
             Trace.Indent();
             CertificateRequestResult result = null;
             try {
@@ -202,7 +205,7 @@ namespace Altairis.AutoAcme.Manager {
                         ac.Login(AcmeEnvironment.CfgStore.SerializedAccountData);
                     }
                     using (var challengeManager = AcmeEnvironment.CreateChallengeManager()) {
-                        result = ac.GetCertificate(hostName, AcmeEnvironment.CfgStore.PfxPassword, challengeManager, skipTest);
+                        result = ac.GetCertificate(hostNames.SplitNames(), AcmeEnvironment.CfgStore.PfxPassword, challengeManager, skipTest);
                     }
                 }
             }
@@ -241,13 +244,15 @@ namespace Altairis.AutoAcme.Manager {
                 // Export files
                 Trace.WriteLine("Exporting files:");
                 Trace.Indent();
-                result.Export(hostName, AcmeEnvironment.CfgStore.PfxFolder, AcmeEnvironment.CfgStore.PemFolder);
+                foreach (var hostName in hostNames.SplitNames()) {
+                    result.Export(hostName, AcmeEnvironment.CfgStore.PfxFolder, AcmeEnvironment.CfgStore.PemFolder);
+                }
                 Trace.Unindent();
 
                 // Update database entry
                 Trace.Write("Updating database entry...");
                 AcmeEnvironment.CfgStore.Hosts.Add(new Host {
-                        CommonName = hostName,
+                        CommonName = hostNames,
                         NotBefore = result.Certificate.NotBefore,
                         NotAfter = result.Certificate.NotAfter,
                         SerialNumber = result.Certificate.SerialNumber,
@@ -274,7 +279,7 @@ namespace Altairis.AutoAcme.Manager {
 
             // Check if there is host with this name
             Trace.Write($"Finding host {hostName.ExplainHostName()}...");
-            var host = AcmeEnvironment.CfgStore.Hosts.SingleOrDefault(x => x.CommonName.Equals(hostName));
+            var host = AcmeEnvironment.CfgStore.Hosts.SingleOrDefault(x => x.GetNames().Any(n => n.Equals(hostName, StringComparison.OrdinalIgnoreCase)));
             if (host == null)
                 AcmeEnvironment.CrashExit($"Host '{hostName.ExplainHostName()}' was not found.");
             Trace.WriteLine("OK");
@@ -391,7 +396,9 @@ namespace Altairis.AutoAcme.Manager {
                 // Delete files
                 Trace.WriteLine("Deleting files:");
                 Trace.Indent();
-                DeleteHostFiles(item.CommonName, AcmeEnvironment.CfgStore.PfxFolder, AcmeEnvironment.CfgStore.PemFolder);
+                foreach (var name in item.GetNames()) {
+                    DeleteHostFiles(name, AcmeEnvironment.CfgStore.PfxFolder, AcmeEnvironment.CfgStore.PemFolder);
+                }
                 Trace.Unindent();
                 Trace.Unindent();
             }
@@ -472,7 +479,7 @@ namespace Altairis.AutoAcme.Manager {
                         // Request certificate
                         CertificateRequestResult result = null;
                         try {
-                            result = ac.GetCertificate(item.CommonName, AcmeEnvironment.CfgStore.PfxPassword, challengeManager, skipTest);
+                            result = ac.GetCertificate(item.GetNames(), AcmeEnvironment.CfgStore.PfxPassword, challengeManager, skipTest);
                         }
                         catch (AggregateException aex) {
                             Trace.WriteLine("Renewal failed!");
@@ -506,7 +513,9 @@ namespace Altairis.AutoAcme.Manager {
                             // Export files
                             Trace.WriteLine("Exporting files:");
                             Trace.Indent();
-                            result.Export(item.CommonName, AcmeEnvironment.CfgStore.PfxFolder, AcmeEnvironment.CfgStore.PemFolder);
+                            foreach (var name in item.GetNames()) {
+                                result.Export(name, AcmeEnvironment.CfgStore.PfxFolder, AcmeEnvironment.CfgStore.PemFolder);
+                            }
                             Trace.Unindent();
 
                             // Update database entry

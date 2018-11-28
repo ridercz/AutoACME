@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 
 using Altairis.AutoAcme.Configuration;
 using Altairis.AutoAcme.Core.Challenges;
@@ -12,6 +15,9 @@ namespace Altairis.AutoAcme.Core {
         private const int ERRORLEVEL_SUCCESS = 0;
         private const int ERRORLEVEL_FAILURE = 1;
         public const string DEFAULT_CONFIG_NAME = "autoacme.json";
+
+        private static readonly Regex RX_SPLIT = new Regex(@"\s+|\s*[;,]\s*", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+        private static readonly Regex RX_CHECK = new Regex(@"^(((?!-))(xn--|_{1,1})?[a-z0-9-]{0,61}[a-z0-9]{1,1}\.)*(xn--)?([a-z0-9\-]{1,61}|[a-z0-9-]{1,30}\.[a-z]{2,})$", RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture);
         public static readonly IdnMapping IDN_MAPPING = new IdnMapping();
         public static bool VerboseMode;
         public static Store CfgStore;
@@ -90,8 +96,20 @@ namespace Altairis.AutoAcme.Core {
             Environment.Exit(ERRORLEVEL_FAILURE);
         }
 
+        public static IEnumerable<string> GetNames(this Host host) { return RX_SPLIT.Split(host.CommonName); }
+
+        public static IEnumerable<string> SplitNames(this string hostNames) { return RX_SPLIT.Split(hostNames); }
+
+        public static string ToAsciiHostNames(this string hostNames) {
+            return string.Join(" ", RX_SPLIT.Split(hostNames.Trim()).Select(ToAsciiHostName));
+        }
+
         public static string ToAsciiHostName(this string hostName) {
-            return IDN_MAPPING.GetAscii(hostName.Trim().ToLowerInvariant().Normalize());
+            var result = IDN_MAPPING.GetAscii(hostName.Trim().ToLowerInvariant().Normalize());
+            if (!RX_CHECK.IsMatch(result)) {
+                throw new ArgumentException($"The name {hostName} is not a valid hostname", nameof(hostName));
+            }
+            return result;
         }
 
         public static string ExplainHostName(this string hostName) {

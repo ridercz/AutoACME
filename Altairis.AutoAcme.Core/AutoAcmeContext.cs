@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 
@@ -49,11 +51,11 @@ namespace Altairis.AutoAcme.Core {
             }
         }
 
-        public CertificateRequestResult GetCertificate(string hostName, string pfxPassword, ChallengeResponseProvider challengeManager, bool skipTest = false) {
-            return GetCertificateAsync(hostName, pfxPassword, challengeManager, skipTest).Result;
+        public CertificateRequestResult GetCertificate(IEnumerable<string> hostNames, string pfxPassword, ChallengeResponseProvider challengeManager, bool skipTest = false) {
+            return GetCertificateAsync(hostNames, pfxPassword, challengeManager, skipTest).Result;
         }
 
-        public async Task<CertificateRequestResult> GetCertificateAsync(string hostName, string pfxPassword, ChallengeResponseProvider challengeManager, bool skipTest = false) {
+        public async Task<CertificateRequestResult> GetCertificateAsync(IEnumerable<string> hostNames, string pfxPassword, ChallengeResponseProvider challengeManager, bool skipTest = false) {
             if (challengeManager == null) throw new ArgumentNullException(nameof(challengeManager));
             if (client == null) throw new ObjectDisposedException(nameof(AutoAcmeContext));
             if (context == null) throw new InvalidOperationException("Not logged in");
@@ -62,14 +64,14 @@ namespace Altairis.AutoAcme.Core {
             if (!skipTest) {
                 Trace.WriteLine("Testing authorization:");
                 Trace.Indent();
-                var probeResult = await challengeManager.TestAsync(new[] {hostName}).ConfigureAwait(false);
+                var probeResult = await challengeManager.TestAsync(hostNames).ConfigureAwait(false);
                 Trace.Unindent();
                 if (!probeResult) throw new Exception("Test authorization failed");
             }
 
             // Prepare order
             Trace.WriteLine("Preparing order");
-            var orderContext = await context.NewOrder(new[] {hostName}).ConfigureAwait(false);
+            var orderContext = await context.NewOrder(hostNames.ToArray()).ConfigureAwait(false);
             var certKey = KeyFactory.NewKey(AcmeEnvironment.CfgStore.KeyAlgorithm);
             Trace.Unindent();
 
@@ -92,7 +94,7 @@ namespace Altairis.AutoAcme.Core {
             Trace.Write("Exporting PFX...");
             var pfxBuilder = certChain.ToPfx(certKey);
             pfxBuilder.FullChain = false;
-            var pfxData = pfxBuilder.Build(hostName, pfxPassword);
+            var pfxData = pfxBuilder.Build(hostNames.First(), pfxPassword);
             Trace.WriteLine("OK");
             Trace.Unindent();
             return new CertificateRequestResult {

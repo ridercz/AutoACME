@@ -60,7 +60,7 @@ namespace Altairis.AutoAcme.IisSync {
 
                 // Find new hosts
                 Trace.Write("Finding new hosts to add...");
-                bindings = bindings.Where(x => !AcmeEnvironment.CfgStore.Hosts.Any(h => h.CommonName.Equals(x.Host, StringComparison.OrdinalIgnoreCase)));
+                bindings = bindings.Where(x => !AcmeEnvironment.CfgStore.Hosts.SelectMany(h => h.GetNames()).Any(h => h.Equals(x.Host, StringComparison.OrdinalIgnoreCase)));
                 if (!bindings.Any()) {
                     Trace.WriteLine("None");
                     return;
@@ -85,7 +85,7 @@ namespace Altairis.AutoAcme.IisSync {
                     using (var challengeManager = AcmeEnvironment.CreateChallengeManager()) {
                         foreach (var binding in bindings.ToArray()) {
                             // Check if was already added before
-                            if (AcmeEnvironment.CfgStore.Hosts.Any(h => h.CommonName.Equals(binding.Host, StringComparison.OrdinalIgnoreCase))) continue;
+                            if (AcmeEnvironment.CfgStore.Hosts.SelectMany(h => h.GetNames()).Any(h => h.Equals(binding.Host, StringComparison.OrdinalIgnoreCase))) continue;
 
                             Trace.WriteLine($"Adding new host {binding.Host.ExplainHostName()}:");
                             Trace.Indent();
@@ -93,7 +93,7 @@ namespace Altairis.AutoAcme.IisSync {
                             // Request certificate
                             CertificateRequestResult result = null;
                             try {
-                                result = ac.GetCertificate(binding.Host, AcmeEnvironment.CfgStore.PfxPassword, challengeManager);
+                                result = ac.GetCertificate(new[] {binding.Host}, AcmeEnvironment.CfgStore.PfxPassword, challengeManager);
                             }
                             catch (Exception ex) {
                                 Trace.WriteLine($"Request failed: {ex.Message}");
@@ -159,7 +159,8 @@ namespace Altairis.AutoAcme.IisSync {
 
             using (var sc = new ServerContext(serverName)) {
                 try {
-                    Trace.Write($"Getting bindings from {hostName.ExplainHostName()}...");
+                    
+                    Trace.Write($"Getting bindings from {serverName}...");
                     var bindings = sc.GetBindings().ToArray();
                     Trace.WriteLine("OK");
 
