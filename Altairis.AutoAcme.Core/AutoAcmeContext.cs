@@ -143,12 +143,13 @@ namespace Altairis.AutoAcme.Core {
                     ContentType = "application/json",
                     Key = new KeyInfo() {PrivateKeyInfo = context.AccountKey.ToDer()},
                     Data = {
-                            Agreement = await context.TermsOfService().ConfigureAwait(true),
                             Contact = contacts,
                             Resource = "reg"
                     },
                     Location = accountContext.Location
             };
+
+            legacyAccount.Data.Agreement = await context.TermsOfService().ConfigureAwait(true);
             return JsonConvert.SerializeObject(legacyAccount);
         }
     }
