@@ -17,7 +17,8 @@ namespace Altairis.AutoAcme.Core {
 
             // Save to PFX file
             if (!string.IsNullOrWhiteSpace(pfxFolder)) {
-                var pfxFileName = Path.Combine(pfxFolder, hostName + ".pfx");
+                // IIS. For IDN names, the Centralized Certificate Store expects the literal unicode name, not the punycode name
+                var pfxFileName = Path.Combine(pfxFolder, hostName.ToUnicodeHostName() + ".pfx");
                 Log.Write($"Saving PFX to {pfxFileName}...");
                 File.WriteAllBytes(pfxFileName, this.PfxData);
                 Log.WriteLine("OK");
