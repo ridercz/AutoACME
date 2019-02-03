@@ -95,6 +95,10 @@ namespace Altairis.AutoAcme.Core {
             return result;
         }
 
+        public static string ToUnicodeHostName(this string hostName) {
+            return IDN_MAPPING.GetUnicode(hostName);
+        }
+
         public static string ExplainHostName(this string hostName) {
             var unicodeHostname = IDN_MAPPING.GetUnicode(hostName);
             if (!hostName.Equals(unicodeHostname, StringComparison.OrdinalIgnoreCase)) {
