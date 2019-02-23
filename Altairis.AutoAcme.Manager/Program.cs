@@ -17,7 +17,7 @@ namespace Altairis.AutoAcme.Manager {
             Trace.Listeners.Add(new ConsoleTraceListener());
 
             Log.WriteLine($"Altairis AutoACME Manager version {Assembly.GetExecutingAssembly().GetName().Version}");
-            Log.WriteLine("Copyright (c) Michal A. Valasek - Altairis, 2017");
+            Log.WriteLine("Copyright © Michal A. Valášek - Altairis and contributors, 2017-2019");
             Log.WriteLine("www.autoacme.net | www.rider.cz | www.altairis.cz");
             Log.WriteLine();
             Consolery.Run();
