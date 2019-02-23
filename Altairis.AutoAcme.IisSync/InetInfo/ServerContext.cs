@@ -21,7 +21,7 @@ namespace Altairis.AutoAcme.IisSync.InetInfo {
         }
 
         public IEnumerable<BindingInfo> GetBindings() {
-            return mgr.Sites.SelectMany(s => s.Bindings.Where(b => PROTOCOL_NAMES.Any(n => n.Equals(b.Protocol, StringComparison.OrdinalIgnoreCase))).Select(b => new BindingInfo {
+            return this.mgr.Sites.SelectMany(s => s.Bindings.Where(b => PROTOCOL_NAMES.Any(n => n.Equals(b.Protocol, StringComparison.OrdinalIgnoreCase))).Select(b => new BindingInfo {
                 SiteId = s.Id,
                 SiteName = s.Name,
                 SiteStarted = s.State == ObjectState.Started,
@@ -41,18 +41,18 @@ namespace Altairis.AutoAcme.IisSync.InetInfo {
             if (hostName == null) throw new ArgumentNullException(nameof(hostName));
             if (string.IsNullOrWhiteSpace(hostName)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(hostName));
 
-            var site = mgr.Sites[siteName];
+            var site = this.mgr.Sites[siteName];
             var sslFlags = SslFlags.CentralCertStore;
             if (requireSni) sslFlags |= SslFlags.Sni;
             site.Bindings.Add($"*:443:{hostName}", null, null, sslFlags);
-            mgr.CommitChanges();
+            this.mgr.CommitChanges();
         }
 
         // IDisposable implementation
 
         public void Dispose() {
             // Dispose of unmanaged resources.
-            Dispose(true);
+            this.Dispose(true);
 
             // Suppress finalization.
             GC.SuppressFinalize(this);

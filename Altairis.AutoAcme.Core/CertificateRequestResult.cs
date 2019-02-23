@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.Security.Cryptography.X509Certificates;
-
 using Certes.Pkcs;
 
 namespace Altairis.AutoAcme.Core {
@@ -23,35 +22,36 @@ namespace Altairis.AutoAcme.Core {
 
             // Save to PFX file
             if (!string.IsNullOrWhiteSpace(pfxFolder)) {
-                // IIS. For IDN names, the Centralized Certificate Store expects the literal unicode name, not the punycode name
-                var pfxFileName = Path.Combine(pfxFolder, hostName.ToUnicodeHostName()+".pfx");
+                // For IDN names, the Centralized Certificate Store expects the literal unicode name, not the punycode name
+                var pfxFileName = Path.Combine(pfxFolder, hostName.ToUnicodeHostName() + ".pfx");
                 Log.Write($"Saving PFX to {pfxFileName}...");
-                File.WriteAllBytes(pfxFileName, PfxData);
+                File.WriteAllBytes(pfxFileName, this.PfxData);
                 Log.WriteLine("OK");
             }
 
             // Save to PEM file
             if (!string.IsNullOrWhiteSpace(pemFolder)) {
-                var pemFileName = Path.Combine(pemFolder, hostName+".pem");
-                var crtFileName = Path.Combine(pemFolder, hostName+".crt");
+                var pemFileName = Path.Combine(pemFolder, hostName + ".pem");
+                var crtFileName = Path.Combine(pemFolder, hostName + ".crt");
                 Log.Write($"Saving PEM to {pemFileName}...");
                 using (var f = File.Create(pemFileName)) {
-                    PrivateKey.Save(f);
+                    this.PrivateKey.Save(f);
                 }
                 Log.WriteLine("OK");
                 Log.Write($"Saving CRT to {crtFileName}...");
                 using (var f = File.CreateText(crtFileName)) {
-                    WriteCertificateData(f, Certificate);
+                    WriteCertificateData(f, this.Certificate);
                     var chain = new X509Chain() {
-                            ChainPolicy = new X509ChainPolicy() {
-                                    RevocationMode = X509RevocationMode.NoCheck
-                            }
+                        ChainPolicy = new X509ChainPolicy() {
+                            RevocationMode = X509RevocationMode.NoCheck
+                        }
                     };
-                    if (chain.Build(Certificate)) {
-                        for (var i = 1; i < chain.ChainElements.Count-1; i++) {
+                    if (chain.Build(this.Certificate)) {
+                        for (var i = 1; i < chain.ChainElements.Count - 1; i++) {
                             WriteCertificateData(f, chain.ChainElements[i].Certificate);
                         }
-                    } else {
+                    }
+                    else {
                         Log.WriteLine($"Warning: The chain of the certificate could not be exported to {crtFileName}");
                     }
                 }

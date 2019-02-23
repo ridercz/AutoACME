@@ -5,8 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Altairis.AutoAcme.Core.Challenges {
-    public class HttpChallengeHostedResponseProvider: HttpChallengeResponseProvider {
-        private class ChallengeHosted: IDisposable {
+    public class HttpChallengeHostedResponseProvider : HttpChallengeResponseProvider {
+        private class ChallengeHosted : IDisposable {
             private readonly HttpChallengeHostedResponseProvider owner;
             private readonly string tokenId;
 
@@ -16,26 +16,26 @@ namespace Altairis.AutoAcme.Core.Challenges {
                 owner.authStrings.Add(tokenId, authString);
             }
 
-            public void Dispose() { owner.authStrings.Remove(tokenId); }
+            public void Dispose() => this.owner.authStrings.Remove(this.tokenId);
         }
 
         private readonly Dictionary<string, string> authStrings = new Dictionary<string, string>(StringComparer.Ordinal);
         private readonly HttpListener listener;
 
-        public HttpChallengeHostedResponseProvider(string urlPrefix): base() {
-            listener = new HttpListener();
-            listener.Prefixes.Add(urlPrefix);
-            listener.Start();
-            Log.WriteLine("Listening on "+urlPrefix);
-            listener.GetContextAsync().ContinueWith(HandleRequest, TaskContinuationOptions.OnlyOnRanToCompletion);
+        public HttpChallengeHostedResponseProvider(string urlPrefix) : base() {
+            this.listener = new HttpListener();
+            this.listener.Prefixes.Add(urlPrefix);
+            this.listener.Start();
+            Log.WriteLine("Listening on " + urlPrefix);
+            this.listener.GetContextAsync().ContinueWith(this.HandleRequest, TaskContinuationOptions.OnlyOnRanToCompletion);
         }
 
-        protected override IDisposable CreateChallengeHandler(string tokenId, string authString) { return new ChallengeHosted(this, tokenId, authString); }
+        protected override IDisposable CreateChallengeHandler(string tokenId, string authString) => new ChallengeHosted(this, tokenId, authString);
 
         protected override void Dispose(bool disposing) {
             try {
                 if (disposing) {
-                    listener.Close();
+                    this.listener.Close();
                 }
             }
             finally {
@@ -44,14 +44,13 @@ namespace Altairis.AutoAcme.Core.Challenges {
         }
 
         private void HandleRequest(Task<HttpListenerContext> task) {
-            listener.GetContextAsync().ContinueWith(HandleRequest, TaskContinuationOptions.OnlyOnRanToCompletion);
+            this.listener.GetContextAsync().ContinueWith(this.HandleRequest, TaskContinuationOptions.OnlyOnRanToCompletion);
             var request = task.Result.Request;
             var response = task.Result.Response;
             Log.AssertNewLine();
             Log.WriteLine($"(Handling request from {request.RemoteEndPoint.Address})");
-            var tokenId = request.Url.AbsolutePath.Substring(request.Url.AbsolutePath.LastIndexOf('/')+1);
-            string authString;
-            if (!authStrings.TryGetValue(tokenId, out authString)) {
+            var tokenId = request.Url.AbsolutePath.Substring(request.Url.AbsolutePath.LastIndexOf('/') + 1);
+            if (!this.authStrings.TryGetValue(tokenId, out var authString)) {
                 response.StatusCode = 404;
                 response.StatusDescription = "Not Found";
                 response.Close();

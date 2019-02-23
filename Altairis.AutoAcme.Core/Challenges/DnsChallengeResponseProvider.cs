@@ -3,26 +3,24 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Management;
 using System.Threading.Tasks;
-
 using Certes;
 using Certes.Acme;
 using Certes.Acme.Resource;
-
 using DnsClient;
 
 namespace Altairis.AutoAcme.Core.Challenges {
-    public class DnsChallengeResponseProvider: ChallengeResponseProvider {
-        private class TxtRecord: IDisposable {
+    public class DnsChallengeResponseProvider : ChallengeResponseProvider {
+        private class TxtRecord : IDisposable {
             private readonly DnsChallengeResponseProvider owner;
             private readonly string path;
 
             public TxtRecord(DnsChallengeResponseProvider owner, string fullName, string value) {
                 this.owner = owner;
-                FullName = fullName;
+                this.FullName = fullName;
                 using (var scopedClass = new ManagementClass(owner.scope, TXT_RECORD, null)) {
-                    using (var newObj = InvokeMethodAsync(scopedClass, "CreateInstanceFromPropertyData", owner.dnsServer, owner.dnsDomain, FullName, 1, 10, value).Result) {
-                        path = (string)newObj["RR"];
-                        Log.WriteVerboseLine("DNS record: "+path);
+                    using (var newObj = InvokeMethodAsync(scopedClass, "CreateInstanceFromPropertyData", owner.dnsServer, owner.dnsDomain, this.FullName, 1, 10, value).Result) {
+                        this.path = (string)newObj["RR"];
+                        Log.WriteVerboseLine("DNS record: " + this.path);
                     }
                 }
             }
@@ -30,7 +28,7 @@ namespace Altairis.AutoAcme.Core.Challenges {
             public string FullName { get; }
 
             public void Dispose() {
-                var record = new ManagementObject(owner.scope, new ManagementPath(path), null);
+                var record = new ManagementObject(this.owner.scope, new ManagementPath(this.path), null);
                 try {
                     record.Delete();
                 }
@@ -55,18 +53,18 @@ namespace Altairis.AutoAcme.Core.Challenges {
         private readonly ManagementScope scope;
         private readonly LookupClient lookupClient;
 
-        public DnsChallengeResponseProvider(string dnsServer, string dnsDomain): base() {
+        public DnsChallengeResponseProvider(string dnsServer, string dnsDomain) : base() {
             this.dnsServer = dnsServer;
             this.dnsDomain = dnsDomain.ToAsciiHostName();
-            scope = new ManagementScope($@"\\{this.dnsServer}\ROOT\MicrosoftDNS");
-            scope.Connect();
-            lookupClient = new LookupClient();
+            this.scope = new ManagementScope($@"\\{this.dnsServer}\ROOT\MicrosoftDNS");
+            this.scope.Connect();
+            this.lookupClient = new LookupClient();
         }
 
         public override string ChallengeType => ChallengeTypes.Dns01;
 
         protected override async Task<IDisposable> CreateChallengeHandler(IChallengeContext ch, string hostName, IKey accountKey) {
-            var cnameQuery = await lookupClient.QueryAsync($"_acme-challenge.{hostName}", QueryType.CNAME).ConfigureAwait(true);
+            var cnameQuery = await this.lookupClient.QueryAsync($"_acme-challenge.{hostName}", QueryType.CNAME).ConfigureAwait(true);
             var cnameRecord = cnameQuery.Answers.CnameRecords().Single();
             var fullName = cnameRecord.CanonicalName.Value.TrimEnd('.');
             Log.WriteVerboseLine("DNS CNAME target:");
@@ -82,25 +80,25 @@ namespace Altairis.AutoAcme.Core.Challenges {
                 foreach (var hostName in hostNames.Select(n => n.StartsWith("*.") ? n.Substring(2) : n).Distinct(StringComparer.OrdinalIgnoreCase)) {
                     var acmeChallengeName = $"_acme-challenge.{hostName}";
                     // Test NS configuration of domain
-                    var cnameQuery = await lookupClient.QueryAsync(acmeChallengeName, QueryType.CNAME).ConfigureAwait(true);
+                    var cnameQuery = await this.lookupClient.QueryAsync(acmeChallengeName, QueryType.CNAME).ConfigureAwait(true);
                     var cnameRecord = cnameQuery.Answers.CnameRecords().SingleOrDefault();
                     if (cnameRecord == null) {
                         Log.WriteLine($"No DNS CNAME record found for {acmeChallengeName}");
                         return false;
                     }
                     var fullName = cnameRecord.CanonicalName.Value.TrimEnd('.');
-                    if (!fullName.EndsWith("."+dnsDomain, StringComparison.OrdinalIgnoreCase)) {
-                        Log.WriteLine($"The DNS CNAME record for {acmeChallengeName} points to {fullName} which is not part of {dnsDomain}");
+                    if (!fullName.EndsWith("." + this.dnsDomain, StringComparison.OrdinalIgnoreCase)) {
+                        Log.WriteLine($"The DNS CNAME record for {acmeChallengeName} points to {fullName} which is not part of {this.dnsDomain}");
                         return false;
                     }
                     Log.WriteVerboseLine($"The DNS CNAME record for {acmeChallengeName} points to {fullName}");
                     // Test DNS roundtrip with GUID to prevent caching issues
                     var id = Guid.NewGuid().ToString("n");
-                    using (var record = new TxtRecord(this, $"_{id}.{dnsDomain}", id)) {
-                        var query = await lookupClient.QueryAsync(record.FullName, QueryType.TXT).ConfigureAwait(true);
+                    using (var record = new TxtRecord(this, $"_{id}.{this.dnsDomain}", id)) {
+                        var query = await this.lookupClient.QueryAsync(record.FullName, QueryType.TXT).ConfigureAwait(true);
                         var txtRecord = query.Answers.TxtRecords().SingleOrDefault();
                         if (txtRecord == null) {
-                            Log.WriteLine($"The DNS TXT test record was added to {dnsDomain} on {dnsServer}, but could not be retrieved via DNS");
+                            Log.WriteLine($"The DNS TXT test record was added to {this.dnsDomain} on {this.dnsServer}, but could not be retrieved via DNS");
                             return false;
                         }
                         if (!txtRecord.Text.Contains(id)) {

@@ -2,17 +2,16 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-
 using Certes;
 using Certes.Acme;
 using Certes.Acme.Resource;
 
 namespace Altairis.AutoAcme.Core.Challenges {
-    public abstract class ChallengeResponseProvider: IChallengeResponseProvider {
+    public abstract class ChallengeResponseProvider : IChallengeResponseProvider {
         public abstract string ChallengeType { get; }
 
         public void Dispose() {
-            Dispose(true);
+            this.Dispose(true);
             GC.SuppressFinalize(this);
         }
 
@@ -34,8 +33,8 @@ namespace Altairis.AutoAcme.Core.Challenges {
                     Log.WriteLine("OK, the following is DNS name:");
                     Log.Indent();
                     Log.WriteLine(authorization.Identifier.Value);
-                    var ch = await authorizationContext.Challenge(ChallengeType).ConfigureAwait(true);
-                    var handler = await CreateChallengeHandler(ch, authorization.Identifier.Value, context.AccountKey).ConfigureAwait(true);
+                    var ch = await authorizationContext.Challenge(this.ChallengeType).ConfigureAwait(true);
+                    var handler = await this.CreateChallengeHandler(ch, authorization.Identifier.Value, context.AccountKey).ConfigureAwait(true);
                     Log.Unindent();
                     handlers.Add(handler);
                     challenges.Add(ch.Location, ch);
@@ -78,7 +77,7 @@ namespace Altairis.AutoAcme.Core.Challenges {
                         handler.Dispose();
                     }
                     catch (Exception ex) {
-                        Log.WriteLine("Error on challenge response disposal (maybe requires manual cleanup): "+ex.Message);
+                        Log.WriteLine("Error on challenge response disposal (maybe requires manual cleanup): " + ex.Message);
                     }
                 }
             }

@@ -3,12 +3,12 @@ using System.Diagnostics;
 
 namespace Altairis.AutoAcme.Core {
     public static class Log {
-        private static int indent = 0;
+        private static int indent;
         private static bool isNewLine = true;
 
         public static bool VerboseMode;
 
-        public static void Indent() { indent++; }
+        public static void Indent() => indent++;
 
         public static void Unindent() {
             if (indent > 0)
@@ -25,7 +25,8 @@ namespace Altairis.AutoAcme.Core {
                     WriteVerboseLine();
                     WriteVerboseLine(iaex.ToString());
                 }
-            } else {
+            }
+            else {
                 Write(": ");
                 WriteLine(ex.Message);
                 WriteVerboseLine();
@@ -40,7 +41,7 @@ namespace Altairis.AutoAcme.Core {
         }
 
         public static void Write(string value) {
-            if (!String.IsNullOrEmpty(value)) {
+            if (!string.IsNullOrEmpty(value)) {
                 if (isNewLine) {
                     if (indent > 0) {
                         Trace.Write(new string(' ', indent * 2));
@@ -55,7 +56,7 @@ namespace Altairis.AutoAcme.Core {
             if (value != null) {
                 Write(value);
             }
-            Trace.WriteLine(String.Empty);
+            Trace.WriteLine(string.Empty);
             isNewLine = true;
         }
 

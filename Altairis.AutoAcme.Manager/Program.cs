@@ -5,13 +5,10 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-
 using Altairis.AutoAcme.Configuration;
 using Altairis.AutoAcme.Core;
 using Altairis.AutoAcme.Manager.Properties;
-
 using Certes.Acme;
-
 using NConsoler;
 
 namespace Altairis.AutoAcme.Manager {
@@ -114,9 +111,11 @@ namespace Altairis.AutoAcme.Manager {
                 var acmeServer = Console.ReadLine();
                 if (string.IsNullOrWhiteSpace(acmeServer)) {
                     AcmeEnvironment.CfgStore.ServerUri = WellKnownServers.LetsEncryptV2;
-                } else if (acmeServer.Trim().Equals("staging", StringComparison.OrdinalIgnoreCase)) {
+                }
+                else if (acmeServer.Trim().Equals("staging", StringComparison.OrdinalIgnoreCase)) {
                     AcmeEnvironment.CfgStore.ServerUri = WellKnownServers.LetsEncryptStagingV2;
-                } else {
+                }
+                else {
                     AcmeEnvironment.CfgStore.ServerUri = new Uri(acmeServer);
                 }
                 Console.WriteLine();
@@ -157,12 +156,13 @@ namespace Altairis.AutoAcme.Manager {
                 AcmeEnvironment.LoadConfig(cfgFileName);
             hostName = hostName.ToAsciiHostName();
             using (var challengeManager = AcmeEnvironment.CreateChallengeManager()) {
-                var result = challengeManager.TestAsync(new[] {hostName}).Result;
+                var result = challengeManager.TestAsync(new[] { hostName }).Result;
                 Log.WriteLine();
                 if (result) {
                     Log.WriteLine("Test authorization was successful. The real verification may still fail,");
                     Log.WriteLine("ie. when server is not accessible from outside.");
-                } else {
+                }
+                else {
                     Log.WriteLine("Test authorization failed. Examine the above to find out why.");
                 }
             }
@@ -192,7 +192,7 @@ namespace Altairis.AutoAcme.Manager {
             if (AcmeEnvironment.CfgStore == null)
                 AcmeEnvironment.LoadConfig(cfgFileName);
             hostNames = hostNames.ToAsciiHostNames();
-            
+
             // Check if there already is host with this name
             Log.Write("Checking host...");
             var existingHostnames = new HashSet<string>(AcmeEnvironment.CfgStore.Hosts.SelectMany(h => h.GetNames()), StringComparer.OrdinalIgnoreCase);
@@ -213,7 +213,8 @@ namespace Altairis.AutoAcme.Manager {
                     if (string.IsNullOrEmpty(AcmeEnvironment.CfgStore.SerializedAccountData)) {
                         AcmeEnvironment.CfgStore.SerializedAccountData = ac.RegisterAndLogin(AcmeEnvironment.CfgStore.EmailAddress);
                         AcmeEnvironment.SaveConfig(cfgFileName);
-                    } else {
+                    }
+                    else {
                         ac.Login(AcmeEnvironment.CfgStore.SerializedAccountData);
                     }
                     using (var challengeManager = AcmeEnvironment.CreateChallengeManager()) {
@@ -249,11 +250,11 @@ namespace Altairis.AutoAcme.Manager {
                 // Update database entry
                 Log.Write("Updating database entry...");
                 var host = new Host {
-                        CommonName = hostNames,
-                        NotBefore = result.Certificate.NotBefore,
-                        NotAfter = result.Certificate.NotAfter,
-                        SerialNumber = result.Certificate.SerialNumber,
-                        Thumbprint = result.Certificate.Thumbprint
+                    CommonName = hostNames,
+                    NotBefore = result.Certificate.NotBefore,
+                    NotAfter = result.Certificate.NotAfter,
+                    SerialNumber = result.Certificate.SerialNumber,
+                    Thumbprint = result.Certificate.Thumbprint
                 };
                 AcmeEnvironment.CfgStore.Hosts.Add(host);
                 Log.WriteLine("OK");
@@ -344,7 +345,8 @@ namespace Altairis.AutoAcme.Manager {
             try {
                 if (string.IsNullOrWhiteSpace(fileName)) {
                     Log.WriteLine(sb.ToString());
-                } else {
+                }
+                else {
                     Log.Write($"Writing to file '{fileName}'...");
                     File.WriteAllText(fileName, sb.ToString());
                     Log.WriteLine("OK");
@@ -435,7 +437,8 @@ namespace Altairis.AutoAcme.Manager {
                     if (string.IsNullOrEmpty(AcmeEnvironment.CfgStore.SerializedAccountData)) {
                         AcmeEnvironment.CfgStore.SerializedAccountData = ac.RegisterAndLogin(AcmeEnvironment.CfgStore.EmailAddress);
                         AcmeEnvironment.SaveConfig(cfgFileName);
-                    } else {
+                    }
+                    else {
                         ac.Login(AcmeEnvironment.CfgStore.SerializedAccountData);
                     }
                 }
@@ -451,7 +454,8 @@ namespace Altairis.AutoAcme.Manager {
                         var dte = Math.Floor(host.NotAfter.Subtract(DateTime.Now).TotalDays);
                         if (dte < 0) {
                             Log.WriteLine($"Host {host.CommonName} expired {-dte} days ago ({host.NotAfter:D})");
-                        } else {
+                        }
+                        else {
                             Log.WriteLine($"Host {host.CommonName} expires in {dte} days ({host.NotAfter:D})");
                         }
                         if (whatIf) continue;
@@ -524,11 +528,11 @@ namespace Altairis.AutoAcme.Manager {
             // Prepare list of files to delete
             var filesToDelete = new List<string>();
             if (!string.IsNullOrWhiteSpace(pfxFolder)) {
-                filesToDelete.Add(Path.Combine(pfxFolder, hostName+".pfx"));
+                filesToDelete.Add(Path.Combine(pfxFolder, hostName + ".pfx"));
             }
             if (!string.IsNullOrWhiteSpace(pemFolder)) {
-                filesToDelete.Add(Path.Combine(pemFolder, hostName+".pem"));
-                filesToDelete.Add(Path.Combine(pemFolder, hostName+".crt"));
+                filesToDelete.Add(Path.Combine(pemFolder, hostName + ".pem"));
+                filesToDelete.Add(Path.Combine(pemFolder, hostName + ".crt"));
             }
 
             // Try to delete those files

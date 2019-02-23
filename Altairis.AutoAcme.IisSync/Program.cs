@@ -10,8 +10,8 @@ using Altairis.AutoAcme.IisSync.InetInfo;
 using NConsoler;
 
 namespace Altairis.AutoAcme.IisSync {
-    class Program {
-        static void Main(string[] args) {
+    internal class Program {
+        private static void Main(string[] args) {
             Trace.Listeners.Add(new ConsoleTraceListener());
 
             Log.WriteLine($"Altairis AutoACME IIS Synchronization Tool version {System.Reflection.Assembly.GetExecutingAssembly().GetName().Version}");
@@ -97,7 +97,7 @@ namespace Altairis.AutoAcme.IisSync {
                             // Request certificate
                             CertificateRequestResult result = null;
                             try {
-                                result = ac.GetCertificate(new[] {binding.Host}, AcmeEnvironment.CfgStore.PfxPassword, challengeManager);
+                                result = ac.GetCertificate(new[] { binding.Host }, AcmeEnvironment.CfgStore.PfxPassword, challengeManager);
                             }
                             catch (Exception ex) {
                                 Log.Exception(ex, "Request failed");
@@ -113,11 +113,11 @@ namespace Altairis.AutoAcme.IisSync {
                             // Update database entry
                             Log.Write("Updating database entry...");
                             AcmeEnvironment.CfgStore.Hosts.Add(new Host {
-                                    CommonName = binding.Host,
-                                    NotBefore = result.Certificate.NotBefore,
-                                    NotAfter = result.Certificate.NotAfter,
-                                    SerialNumber = result.Certificate.SerialNumber,
-                                    Thumbprint = result.Certificate.Thumbprint
+                                CommonName = binding.Host,
+                                NotBefore = result.Certificate.NotBefore,
+                                NotAfter = result.Certificate.NotAfter,
+                                SerialNumber = result.Certificate.SerialNumber,
+                                Thumbprint = result.Certificate.Thumbprint
                             });
                             Log.WriteLine("OK");
                             AcmeEnvironment.SaveConfig(cfgFileName);
@@ -162,7 +162,7 @@ namespace Altairis.AutoAcme.IisSync {
 
             using (var sc = new ServerContext(serverName)) {
                 try {
-                    
+
                     Log.Write($"Getting bindings from {serverName}...");
                     var bindings = sc.GetBindings().ToArray();
                     Log.WriteLine("OK");
@@ -208,7 +208,7 @@ namespace Altairis.AutoAcme.IisSync {
 
             try {
                 Log.Write("Getting bindings...");
-                int count = 0;
+                var count = 0;
                 var sb = new StringBuilder();
                 if (!skipHeaders) sb.AppendLine(string.Join(columnSeparator,
                     "Site ID",

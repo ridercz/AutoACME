@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-
 using Certes;
 using Certes.Acme;
 using Newtonsoft.Json;

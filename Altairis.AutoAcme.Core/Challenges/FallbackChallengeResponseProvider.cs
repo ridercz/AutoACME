@@ -1,25 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Threading.Tasks;
-
 using Certes.Acme;
 
 namespace Altairis.AutoAcme.Core.Challenges {
-    public class FallbackChallengeResponseProvider: IChallengeResponseProvider {
+    public class FallbackChallengeResponseProvider : IChallengeResponseProvider {
         private readonly ChallengeResponseProvider[] providers;
         private int index;
 
         public FallbackChallengeResponseProvider(params ChallengeResponseProvider[] providers) { this.providers = providers; }
 
-        public void Dispose() { Array.ForEach(providers, provider => provider.Dispose()); }
+        public void Dispose() => Array.ForEach(this.providers, provider => provider.Dispose());
 
         public Task<bool> ValidateAsync(AutoAcmeContext context, IEnumerable<IAuthorizationContext> authorizationContexts) {
-            if (index >= providers.Length) {
+            if (this.index >= this.providers.Length) {
                 return Task.FromResult(false);
             }
-            var provider = providers[index];
-            Log.WriteLine("Validate via "+provider.ChallengeType+"...");
+            var provider = this.providers[this.index];
+            Log.WriteLine("Validate via " + provider.ChallengeType + "...");
             Log.Indent();
             try {
                 return provider.ValidateAsync(context, authorizationContexts);
@@ -30,9 +28,9 @@ namespace Altairis.AutoAcme.Core.Challenges {
         }
 
         public async Task<bool> TestAsync(IEnumerable<string> hostNames) {
-            index = 0;
-            while (index < providers.Length) {
-                var provider = providers[index];
+            this.index = 0;
+            while (this.index < this.providers.Length) {
+                var provider = this.providers[this.index];
                 Log.WriteLine($"Testing {provider.ChallengeType}...");
                 Log.Indent();
                 try {
@@ -43,7 +41,7 @@ namespace Altairis.AutoAcme.Core.Challenges {
                 finally {
                     Log.Unindent();
                 }
-                index++;
+                this.index++;
             }
             return false;
         }
