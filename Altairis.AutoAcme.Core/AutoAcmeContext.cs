@@ -137,10 +137,10 @@ namespace Altairis.AutoAcme.Core {
             var legacyAccount = new AcmeAccount() {
                 ContentType = "application/json",
                 Key = new KeyInfo() { PrivateKeyInfo = this.context.AccountKey.ToDer() },
-                Data = {
-                            Contact = contacts,
-                            Resource = "reg"
-                    },
+                Data = new RegistrationEntity {
+                    Contact = contacts,
+                    Resource = "reg"
+                },
                 Location = accountContext.Location
             };
 
