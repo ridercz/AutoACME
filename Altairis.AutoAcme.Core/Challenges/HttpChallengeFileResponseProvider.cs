@@ -1,9 +1,10 @@
 ﻿using System;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace Altairis.AutoAcme.Core.Challenges {
     public class HttpChallengeFileResponseProvider : HttpChallengeResponseProvider {
-        private class ChallengeFile : IDisposable {
+        private class ChallengeFile : IChallengeHandler {
             private readonly string fileName;
 
             public ChallengeFile(string fileName, string authString) {
@@ -13,11 +14,13 @@ namespace Altairis.AutoAcme.Core.Challenges {
                 Log.WriteLine("OK");
             }
 
-            public void Dispose() {
-                if (!File.Exists(this.fileName)) return;
-                Log.Write($"Deleting challenge from {this.fileName}...");
-                File.Delete(this.fileName);
-                Log.WriteLine("OK");
+            public Task CleanupAsync() {
+                if (File.Exists(this.fileName)) {
+                    Log.Write($"Deleting challenge from {this.fileName}...");
+                    File.Delete(this.fileName);
+                    Log.WriteLine("OK");
+                }
+                return Task.CompletedTask;
             }
         }
 
@@ -25,6 +28,6 @@ namespace Altairis.AutoAcme.Core.Challenges {
 
         public HttpChallengeFileResponseProvider(string challengeFolder) : base() { this.challengeFolder = challengeFolder; }
 
-        protected override IDisposable CreateChallengeHandler(string tokenId, string authString) => new ChallengeFile(Path.Combine(this.challengeFolder, tokenId), authString);
+        protected override Task<IChallengeHandler> CreateChallengeHandlerAsync(string tokenId, string authString) => Task.FromResult<IChallengeHandler>(new ChallengeFile(Path.Combine(this.challengeFolder, tokenId), authString));
     }
 }

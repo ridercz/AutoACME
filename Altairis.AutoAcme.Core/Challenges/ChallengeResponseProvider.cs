@@ -17,24 +17,24 @@ namespace Altairis.AutoAcme.Core.Challenges {
 
         protected virtual void Dispose(bool disposing) { }
 
-        protected abstract Task<IDisposable> CreateChallengeHandler(IChallengeContext ch, string hostName, IKey accountKey);
+        protected abstract Task<IChallengeHandler> CreateChallengeHandlerAsync(IChallengeContext ch, string hostName, IKey accountKey);
 
         public async Task<bool> ValidateAsync(AutoAcmeContext context, IEnumerable<IAuthorizationContext> authorizationContexts) {
             // Get challenge
             Log.WriteLine("Getting challenge...");
-            var handlers = new List<IDisposable>();
+            var handlers = new List<IChallengeHandler>();
             var result = true;
             try {
                 // Prepare challenges
                 var challenges = new Dictionary<Uri, IChallengeContext>();
                 Log.Indent();
                 foreach (var authorizationContext in authorizationContexts) {
-                    var authorization = await authorizationContext.Resource().ConfigureAwait(true);
+                    var authorization = await authorizationContext.Resource().ConfigureAwait(false);
                     Log.WriteLine("OK, the following is DNS name:");
                     Log.Indent();
                     Log.WriteLine(authorization.Identifier.Value);
-                    var ch = await authorizationContext.Challenge(this.ChallengeType).ConfigureAwait(true);
-                    var handler = await this.CreateChallengeHandler(ch, authorization.Identifier.Value, context.AccountKey).ConfigureAwait(true);
+                    var ch = await authorizationContext.Challenge(this.ChallengeType).ConfigureAwait(false);
+                    var handler = await this.CreateChallengeHandlerAsync(ch, authorization.Identifier.Value, context.AccountKey).ConfigureAwait(false);
                     Log.Unindent();
                     handlers.Add(handler);
                     challenges.Add(ch.Location, ch);
@@ -44,7 +44,7 @@ namespace Altairis.AutoAcme.Core.Challenges {
                 var challengeTasks = challenges.Values.Select(ch => ch.Validate());
                 for (var i = 0; i < context.ChallengeVerificationRetryCount; i++) {
                     Log.Write(".");
-                    foreach (var challenge in await Task.WhenAll(challengeTasks).ConfigureAwait(true)) {
+                    foreach (var challenge in await Task.WhenAll(challengeTasks).ConfigureAwait(false)) {
                         switch (challenge.Status) {
                             case ChallengeStatus.Invalid:
                                 Log.WriteLine($"Challenge {challenge.Status}: {challenge.Url} {challenge.Error?.Detail}");
@@ -59,7 +59,7 @@ namespace Altairis.AutoAcme.Core.Challenges {
                     if (challenges.Count == 0) {
                         break;
                     }
-                    await Task.Delay(context.ChallengeVerificationWait).ConfigureAwait(true);
+                    await Task.Delay(context.ChallengeVerificationWait).ConfigureAwait(false);
                     challengeTasks = challenges.Values.Select(ch => ch.Resource());
                 }
                 // Complete challenge
@@ -74,7 +74,7 @@ namespace Altairis.AutoAcme.Core.Challenges {
             finally {
                 foreach (var handler in handlers) {
                     try {
-                        handler.Dispose();
+                        await handler.CleanupAsync().ConfigureAwait(false);
                     }
                     catch (Exception ex) {
                         Log.WriteLine("Error on challenge response disposal (maybe requires manual cleanup): " + ex.Message);

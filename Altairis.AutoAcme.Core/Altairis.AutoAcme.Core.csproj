@@ -102,7 +102,9 @@
     <Compile Include="Challenges\HttpChallengeFileResponseProvider.cs" />
     <Compile Include="Challenges\HttpChallengeHostedResponseProvider.cs" />
     <Compile Include="Challenges\HttpChallengeResponseProvider.cs" />
+    <Compile Include="Challenges\IChallengeHandler.cs" />
     <Compile Include="Challenges\IChallengeResponseProvider.cs" />
+    <Compile Include="Challenges\ManagementExtensions.cs" />
     <Compile Include="Log.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

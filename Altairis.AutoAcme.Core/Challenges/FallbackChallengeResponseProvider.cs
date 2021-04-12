@@ -12,15 +12,15 @@ namespace Altairis.AutoAcme.Core.Challenges {
 
         public void Dispose() => Array.ForEach(this.providers, provider => provider.Dispose());
 
-        public Task<bool> ValidateAsync(AutoAcmeContext context, IEnumerable<IAuthorizationContext> authorizationContexts) {
+        public async Task<bool> ValidateAsync(AutoAcmeContext context, IEnumerable<IAuthorizationContext> authorizationContexts) {
             if (this.index >= this.providers.Length) {
-                return Task.FromResult(false);
+                return false;
             }
             var provider = this.providers[this.index];
             Log.WriteLine("Validate via " + provider.ChallengeType + "...");
             Log.Indent();
             try {
-                return provider.ValidateAsync(context, authorizationContexts);
+                return await provider.ValidateAsync(context, authorizationContexts).ConfigureAwait(false);
             }
             finally {
                 Log.Unindent();
@@ -34,7 +34,7 @@ namespace Altairis.AutoAcme.Core.Challenges {
                 Log.WriteLine($"Testing {provider.ChallengeType}...");
                 Log.Indent();
                 try {
-                    if (await provider.TestAsync(hostNames).ConfigureAwait(true)) {
+                    if (await provider.TestAsync(hostNames).ConfigureAwait(false)) {
                         return true;
                     }
                 }

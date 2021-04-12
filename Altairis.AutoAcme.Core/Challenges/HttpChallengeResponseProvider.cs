@@ -26,13 +26,13 @@ namespace Altairis.AutoAcme.Core.Challenges {
 
                 // Get response
                 Log.Write("Getting response...");
-                using (var rp = await rq.GetResponseAsync().ConfigureAwait(true) as HttpWebResponse) {
+                using (var rp = await rq.GetResponseAsync().ConfigureAwait(false) as HttpWebResponse) {
                     Log.WriteLine("OK");
                     Log.Write("Reading response...");
                     string responseText;
                     using (var s = rp.GetResponseStream())
                     using (var tr = new StreamReader(s)) {
-                        responseText = await tr.ReadToEndAsync().ConfigureAwait(true);
+                        responseText = await tr.ReadToEndAsync().ConfigureAwait(false);
                         Log.WriteLine("OK");
                     }
                     Log.Indent();
@@ -77,14 +77,14 @@ namespace Altairis.AutoAcme.Core.Challenges {
 
         public override string ChallengeType => ChallengeTypes.Http01;
 
-        protected abstract IDisposable CreateChallengeHandler(string tokenId, string authString);
+        protected abstract Task<IChallengeHandler> CreateChallengeHandlerAsync(string tokenId, string authString);
 
-        protected sealed override Task<IDisposable> CreateChallengeHandler(IChallengeContext ch, string hostName, IKey accountKey) {
+        protected sealed override Task<IChallengeHandler> CreateChallengeHandlerAsync(IChallengeContext ch, string hostName, IKey accountKey) {
             Log.Indent();
             Log.WriteVerboseLine("Key:");
             Log.WriteVerboseLine(ch.KeyAuthz);
             Log.Unindent();
-            return Task.FromResult(this.CreateChallengeHandler(ch.Token, ch.KeyAuthz));
+            return this.CreateChallengeHandlerAsync(ch.Token, ch.KeyAuthz);
         }
 
         public override async Task<bool> TestAsync(IEnumerable<string> hostNames) {
@@ -93,26 +93,30 @@ namespace Altairis.AutoAcme.Core.Challenges {
             var challengeValue = Guid.NewGuid().ToString();
 
             // Create test challenge
-            using (this.CreateChallengeHandler(challengeName, challengeValue)) {
+            var handler = await this.CreateChallengeHandlerAsync(challengeName, challengeValue).ConfigureAwait(false);
+            try {
                 foreach (var hostName in hostNames) {
                     // Try to access the file via HTTP
                     Log.WriteLine("Testing HTTP challenge:");
                     Log.Indent();
                     var httpUri = $"http://{hostName}/.well-known/acme-challenge/{challengeName}";
-                    var result = await CompareTestChallengeAsync(httpUri, challengeValue).ConfigureAwait(true);
+                    var result = await CompareTestChallengeAsync(httpUri, challengeValue).ConfigureAwait(false);
                     Log.Unindent();
                     if (!result) {
                         // Try to access the file via HTTPS
                         Log.WriteLine("Testing HTTPS challenge:");
                         Log.Indent();
                         var httpsUri = $"https://{hostName}/.well-known/acme-challenge/{challengeName}";
-                        result = await CompareTestChallengeAsync(httpsUri, challengeValue).ConfigureAwait(true);
+                        result = await CompareTestChallengeAsync(httpsUri, challengeValue).ConfigureAwait(false);
                         Log.Unindent();
                     }
                     if (!result) {
                         return false;
                     }
                 }
+            }
+            finally {
+                await handler.CleanupAsync().ConfigureAwait(false);
             }
             return true;
         }
