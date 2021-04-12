@@ -57,7 +57,7 @@ namespace Altairis.AutoAcme.Core {
             if (!skipTest) {
                 Log.WriteLine("Testing authorization:");
                 Log.Indent();
-                var probeResult = await challengeManager.TestAsync(hostNames).ConfigureAwait(true);
+                var probeResult = await challengeManager.TestAsync(hostNames).ConfigureAwait(false);
                 Log.Unindent();
                 if (!probeResult) throw new Exception("Test authorization failed");
             }
@@ -65,15 +65,15 @@ namespace Altairis.AutoAcme.Core {
             // Prepare order
             Log.WriteLine("Preparing order");
             Log.Indent();
-            var orderContext = await this.context.NewOrder(hostNames.ToArray()).ConfigureAwait(true);
+            var orderContext = await this.context.NewOrder(hostNames.ToArray()).ConfigureAwait(false);
             var certKey = KeyFactory.NewKey(AcmeEnvironment.CfgStore.KeyAlgorithm);
             Log.Unindent();
 
             // Get authorization
             Log.WriteLine("Getting authorization:");
             Log.Indent();
-            var authorizations = await orderContext.Authorizations().ConfigureAwait(true);
-            var authorizationResult = await challengeManager.ValidateAsync(this, authorizations).ConfigureAwait(true);
+            var authorizations = await orderContext.Authorizations().ConfigureAwait(false);
+            var authorizationResult = await challengeManager.ValidateAsync(this, authorizations).ConfigureAwait(false);
             Log.Unindent();
             if (!authorizationResult) throw new Exception($"Authorization failed with status {authorizationResult}");
 
@@ -83,7 +83,7 @@ namespace Altairis.AutoAcme.Core {
             Log.Write("Requesting certificate...");
             var certChain = await orderContext.Generate(new CsrInfo() {
                 CommonName = hostNames.First()
-            }, certKey).ConfigureAwait(true);
+            }, certKey).ConfigureAwait(false);
             Log.WriteLine("OK");
 
             // Export PFX
@@ -109,15 +109,15 @@ namespace Altairis.AutoAcme.Core {
             this.context = new AcmeContext(this.serverAddress, KeyFactory.FromDer(legacyAccount.Key.PrivateKeyInfo), this.client);
             Log.Write($"Accepting TOS at {legacyAccount.Data.Agreement}...");
             try {
-                var accountContext = await this.context.Account().ConfigureAwait(true);
-                await accountContext.Update(agreeTermsOfService: true).ConfigureAwait(true);
+                var accountContext = await this.context.Account().ConfigureAwait(false);
+                await accountContext.Update(agreeTermsOfService: true).ConfigureAwait(false);
             }
             catch (AcmeRequestException ex) {
                 if (ex.Error?.Type != "urn:ietf:params:acme:error:accountDoesNotExist") {
                     throw;
                 }
                 Log.WriteLine("Migrating account...");
-                await this.context.NewAccount(legacyAccount.Data.Contact, true).ConfigureAwait(true);
+                await this.context.NewAccount(legacyAccount.Data.Contact, true).ConfigureAwait(false);
             }
             Log.WriteLine("OK");
         }
@@ -131,7 +131,7 @@ namespace Altairis.AutoAcme.Core {
             this.context = new AcmeContext(this.serverAddress, null, this.client);
             Log.Write($"Creating registration for '{email}' and accept TOS...");
             var contacts = new[] { "mailto:" + email };
-            var accountContext = await this.context.NewAccount(contacts, true).ConfigureAwait(true);
+            var accountContext = await this.context.NewAccount(contacts, true).ConfigureAwait(false);
             Log.WriteLine("OK");
             // For compatibility with earlier versions, use the V1 account object for storage
             var legacyAccount = new AcmeAccount() {
@@ -144,7 +144,7 @@ namespace Altairis.AutoAcme.Core {
                 Location = accountContext.Location
             };
 
-            legacyAccount.Data.Agreement = await this.context.TermsOfService().ConfigureAwait(true);
+            legacyAccount.Data.Agreement = await this.context.TermsOfService().ConfigureAwait(false);
             return JsonConvert.SerializeObject(legacyAccount);
         }
     }
