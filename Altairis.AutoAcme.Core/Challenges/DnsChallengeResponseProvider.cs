@@ -10,42 +10,41 @@ using DnsClient;
 
 namespace Altairis.AutoAcme.Core.Challenges {
     public class DnsChallengeResponseProvider : ChallengeResponseProvider {
-        private class TxtRecord : IDisposable {
-            private readonly DnsChallengeResponseProvider owner;
-            private readonly string path;
-
-            public TxtRecord(DnsChallengeResponseProvider owner, string fullName, string value) {
-                this.owner = owner;
-                this.FullName = fullName;
+        private class TxtRecord : IChallengeHandler {
+            public static async Task<TxtRecord> CreateAsync(DnsChallengeResponseProvider owner, string fullName, string value) {
                 using (var scopedClass = new ManagementClass(owner.scope, TXT_RECORD, null)) {
-                    using (var newObj = InvokeMethodAsync(scopedClass, "CreateInstanceFromPropertyData", owner.dnsServer, owner.dnsDomain, this.FullName, 1, 10, value).Result) {
-                        this.path = (string)newObj["RR"];
-                        Log.WriteVerboseLine("DNS record: " + this.path);
+                    var newObjs = await scopedClass.InvokeMethodAsync("CreateInstanceFromPropertyData", owner.dnsServer, owner.dnsDomain, fullName, 1, 10, value).ConfigureAwait(false);
+                    try {
+                        return new TxtRecord(owner, fullName, (string)newObjs.Single()["RR"]);
+                    }
+                    finally {
+                        foreach (var newObj in newObjs) {
+                            newObj.Dispose();
+                        }
                     }
                 }
             }
 
+            private readonly DnsChallengeResponseProvider owner;
+            private readonly string path;
+
+            private TxtRecord(DnsChallengeResponseProvider owner, string fullName, string path) {
+                this.owner = owner;
+                this.path = path;
+                this.FullName = fullName;
+                Log.WriteVerboseLine("DNS record: " + this.path);
+            }
+
             public string FullName { get; }
 
-            public void Dispose() {
-                var record = new ManagementObject(this.owner.scope, new ManagementPath(this.path), null);
-                try {
-                    record.Delete();
-                } finally {
-                    record.Dispose();
+            public async Task CleanupAsync() {
+                using (var record = new ManagementObject(this.owner.scope, new ManagementPath(this.path), null)) {
+                    await record.DeleteAsync().ConfigureAwait(false);
                 }
             }
         }
 
         private static readonly ManagementPath TXT_RECORD = new ManagementPath("MicrosoftDNS_TXTType");
-
-        public static Task<ManagementBaseObject> InvokeMethodAsync(ManagementClass that, string name, params object[] args) {
-            var taskSource = new TaskCompletionSource<ManagementBaseObject>();
-            var observer = new ManagementOperationObserver();
-            observer.ObjectReady += (sender, eventArgs) => taskSource.SetResult(eventArgs.NewObject);
-            that.InvokeMethod(observer, name, args);
-            return taskSource.Task;
-        }
 
         private readonly string dnsDomain;
         private readonly string dnsServer;
@@ -62,8 +61,8 @@ namespace Altairis.AutoAcme.Core.Challenges {
 
         public override string ChallengeType => ChallengeTypes.Dns01;
 
-        protected override async Task<IDisposable> CreateChallengeHandler(IChallengeContext ch, string hostName, IKey accountKey) {
-            var cnameQuery = await this.lookupClient.QueryAsync($"_acme-challenge.{hostName}", QueryType.CNAME).ConfigureAwait(true);
+        protected override async Task<IChallengeHandler> CreateChallengeHandlerAsync(IChallengeContext ch, string hostName, IKey accountKey) {
+            var cnameQuery = await this.lookupClient.QueryAsync($"_acme-challenge.{hostName}", QueryType.CNAME).ConfigureAwait(false);
             var cnameRecord = cnameQuery.Answers.CnameRecords().Single();
             var fullName = cnameRecord.CanonicalName.Value.TrimEnd('.');
             Log.WriteVerboseLine("DNS CNAME target:");
@@ -71,7 +70,7 @@ namespace Altairis.AutoAcme.Core.Challenges {
             var txt = accountKey.DnsTxt(ch.Token);
             Log.WriteVerboseLine("DNS value:");
             Log.WriteVerboseLine(txt);
-            return new TxtRecord(this, fullName, txt);
+            return await TxtRecord.CreateAsync(this, fullName, txt).ConfigureAwait(false);
         }
 
         public override async Task<bool> TestAsync(IEnumerable<string> hostNames) {
@@ -79,7 +78,7 @@ namespace Altairis.AutoAcme.Core.Challenges {
                 foreach (var hostName in hostNames.Select(n => n.StartsWith("*.") ? n.Substring(2) : n).Distinct(StringComparer.OrdinalIgnoreCase)) {
                     var acmeChallengeName = $"_acme-challenge.{hostName}";
                     // Test NS configuration of domain
-                    var cnameQuery = await this.lookupClient.QueryAsync(acmeChallengeName, QueryType.CNAME).ConfigureAwait(true);
+                    var cnameQuery = await this.lookupClient.QueryAsync(acmeChallengeName, QueryType.CNAME).ConfigureAwait(false);
                     var cnameRecord = cnameQuery.Answers.CnameRecords().SingleOrDefault();
                     if (cnameRecord == null) {
                         Log.WriteLine($"No DNS CNAME record found for {acmeChallengeName}");
@@ -93,8 +92,9 @@ namespace Altairis.AutoAcme.Core.Challenges {
                     Log.WriteVerboseLine($"The DNS CNAME record for {acmeChallengeName} points to {fullName}");
                     // Test DNS roundtrip with GUID to prevent caching issues
                     var id = Guid.NewGuid().ToString("n");
-                    using (var record = new TxtRecord(this, $"_{id}.{this.dnsDomain}", id)) {
-                        var query = await this.lookupClient.QueryAsync(record.FullName, QueryType.TXT).ConfigureAwait(true);
+                    var record = await TxtRecord.CreateAsync(this, $"_{id}.{this.dnsDomain}", id).ConfigureAwait(false);
+                    try {
+                        var query = await this.lookupClient.QueryAsync(record.FullName, QueryType.TXT).ConfigureAwait(false);
                         var txtRecord = query.Answers.TxtRecords().SingleOrDefault();
                         if (txtRecord == null) {
                             Log.WriteLine($"The DNS TXT test record was added to {this.dnsDomain} on {this.dnsServer}, but could not be retrieved via DNS");
@@ -105,9 +105,13 @@ namespace Altairis.AutoAcme.Core.Challenges {
                             return false;
                         }
                     }
+                    finally {
+                        await record.CleanupAsync().ConfigureAwait(false);
+                    }
                 }
                 return true;
-            } catch (ManagementException ex) {
+            }
+            catch (ManagementException ex) {
                 Log.WriteLine($"Error 0x{(int)ex.ErrorCode:x} occurred while communicating to the DNS server: {ex.Message}");
                 return false;
             }

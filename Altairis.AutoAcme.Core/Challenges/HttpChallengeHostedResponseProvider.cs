@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Altairis.AutoAcme.Core.Challenges {
     public class HttpChallengeHostedResponseProvider : HttpChallengeResponseProvider {
-        private class ChallengeHosted : IDisposable {
+        private class ChallengeHosted : IChallengeHandler {
             private readonly HttpChallengeHostedResponseProvider owner;
             private readonly string tokenId;
 
@@ -16,7 +16,10 @@ namespace Altairis.AutoAcme.Core.Challenges {
                 owner.authStrings.Add(tokenId, authString);
             }
 
-            public void Dispose() => this.owner.authStrings.Remove(this.tokenId);
+            public Task CleanupAsync() {
+                this.owner.authStrings.Remove(this.tokenId);
+                return Task.CompletedTask;
+            }
         }
 
         private readonly Dictionary<string, string> authStrings = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -27,23 +30,29 @@ namespace Altairis.AutoAcme.Core.Challenges {
             this.listener.Prefixes.Add(urlPrefix);
             this.listener.Start();
             Log.WriteLine("Listening on " + urlPrefix);
+            WaitForRequest();
+        }
+
+        private void WaitForRequest() {
             this.listener.GetContextAsync().ContinueWith(this.HandleRequest, TaskContinuationOptions.OnlyOnRanToCompletion);
         }
 
-        protected override IDisposable CreateChallengeHandler(string tokenId, string authString) => new ChallengeHosted(this, tokenId, authString);
+        protected override Task<IChallengeHandler> CreateChallengeHandlerAsync(string tokenId, string authString) => Task.FromResult<IChallengeHandler>(new ChallengeHosted(this, tokenId, authString));
 
         protected override void Dispose(bool disposing) {
-            try {
-                if (disposing) {
+            if (disposing) {
+                try {
                     this.listener.Close();
                 }
-            } finally {
-                base.Dispose(disposing);
+                catch (Exception) {
+                    // Listener cleanup failed, but don't throw in Dispose()
+                }
             }
+            base.Dispose(disposing);
         }
 
         private void HandleRequest(Task<HttpListenerContext> task) {
-            this.listener.GetContextAsync().ContinueWith(this.HandleRequest, TaskContinuationOptions.OnlyOnRanToCompletion);
+            WaitForRequest();
             var request = task.Result.Request;
             var response = task.Result.Response;
             Log.AssertNewLine();
