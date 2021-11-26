@@ -10,9 +10,11 @@ namespace Altairis.AutoAcme.Configuration {
     public class Store {
         private string json;
 
+        private const string SERVER_URI_V1 = "https://acme-v01.api.letsencrypt.org/directory";
+
         public string EmailAddress { get; set; } = "example@example.com";
 
-        public string SerializedAccountData { get; set; }
+        public string AccountKey { get; set; }
 
         public bool DnsChallenge { get; set; } = false;
 
@@ -32,7 +34,7 @@ namespace Altairis.AutoAcme.Configuration {
 
         public string PemFolder { get; set; }
 
-        public Uri ServerUri { get; set; } = WellKnownServers.LetsEncryptV2;
+        public Uri ServerUriV2 { get; set; } = WellKnownServers.LetsEncryptV2;
 
         public int ChallengeVerificationRetryCount { get; set; } = 20;
 
@@ -78,9 +80,11 @@ namespace Altairis.AutoAcme.Configuration {
             if (fileName == null) throw new ArgumentNullException(nameof(fileName));
             if (string.IsNullOrWhiteSpace(fileName)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(fileName));
 
+            // Load store
             var jsonFromFile = File.ReadAllText(fileName);
             var store = JsonConvert.DeserializeObject<Store>(jsonFromFile);
             store.json = jsonFromFile;
+
             return store;
         }
 

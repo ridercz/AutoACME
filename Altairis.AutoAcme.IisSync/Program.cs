@@ -71,17 +71,17 @@ namespace Altairis.AutoAcme.IisSync {
                 }
                 Log.WriteLine($"OK");
 
-                using (var ac = new AutoAcmeContext(AcmeEnvironment.CfgStore.ServerUri)) {
+                using (var ac = new AutoAcmeContext(AcmeEnvironment.CfgStore.ServerUriV2)) {
                     ac.ChallengeVerificationRetryCount = AcmeEnvironment.CfgStore.ChallengeVerificationRetryCount;
                     ac.ChallengeVerificationWait = TimeSpan.FromSeconds(AcmeEnvironment.CfgStore.ChallengeVerificationWaitSeconds);
 
                     // Login to Let's Encrypt service
-                    if (string.IsNullOrEmpty(AcmeEnvironment.CfgStore.SerializedAccountData)) {
-                        AcmeEnvironment.CfgStore.SerializedAccountData = ac.RegisterAndLogin(AcmeEnvironment.CfgStore.EmailAddress);
+                    if (string.IsNullOrEmpty(AcmeEnvironment.CfgStore.AccountKey)) {
+                        AcmeEnvironment.CfgStore.AccountKey = ac.RegisterAndLogin(AcmeEnvironment.CfgStore.EmailAddress);
                         AcmeEnvironment.SaveConfig(cfgFileName);
                     }
                     else {
-                        ac.Login(AcmeEnvironment.CfgStore.SerializedAccountData);
+                        ac.Login(AcmeEnvironment.CfgStore.AccountKey);
                     }
 
                     // Add new hosts

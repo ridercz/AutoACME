@@ -110,13 +110,13 @@ namespace Altairis.AutoAcme.Manager {
                 Console.Write("> ");
                 var acmeServer = Console.ReadLine();
                 if (string.IsNullOrWhiteSpace(acmeServer)) {
-                    AcmeEnvironment.CfgStore.ServerUri = WellKnownServers.LetsEncryptV2;
+                    AcmeEnvironment.CfgStore.ServerUriV2 = WellKnownServers.LetsEncryptV2;
                 }
                 else if (acmeServer.Trim().Equals("staging", StringComparison.OrdinalIgnoreCase)) {
-                    AcmeEnvironment.CfgStore.ServerUri = WellKnownServers.LetsEncryptStagingV2;
+                    AcmeEnvironment.CfgStore.ServerUriV2 = WellKnownServers.LetsEncryptStagingV2;
                 }
                 else {
-                    AcmeEnvironment.CfgStore.ServerUri = new Uri(acmeServer);
+                    AcmeEnvironment.CfgStore.ServerUriV2 = new Uri(acmeServer);
                 }
                 Console.WriteLine();
             }
@@ -133,8 +133,8 @@ namespace Altairis.AutoAcme.Manager {
             InitWeb(cfgFileName, overwrite, verbose);
 
             // Create account
-            using (var ac = new AutoAcmeContext(AcmeEnvironment.CfgStore.ServerUri)) {
-                AcmeEnvironment.CfgStore.SerializedAccountData = ac.RegisterAndLogin(AcmeEnvironment.CfgStore.EmailAddress);
+            using (var ac = new AutoAcmeContext(AcmeEnvironment.CfgStore.ServerUriV2)) {
+                AcmeEnvironment.CfgStore.AccountKey = ac.RegisterAndLogin(AcmeEnvironment.CfgStore.EmailAddress);
             }
             AcmeEnvironment.SaveConfig(cfgFileName);
 
@@ -207,15 +207,15 @@ namespace Altairis.AutoAcme.Manager {
             Log.Indent();
             CertificateRequestResult result = null;
             try {
-                using (var ac = new AutoAcmeContext(AcmeEnvironment.CfgStore.ServerUri)) {
+                using (var ac = new AutoAcmeContext(AcmeEnvironment.CfgStore.ServerUriV2)) {
                     ac.ChallengeVerificationRetryCount = AcmeEnvironment.CfgStore.ChallengeVerificationRetryCount;
                     ac.ChallengeVerificationWait = TimeSpan.FromSeconds(AcmeEnvironment.CfgStore.ChallengeVerificationWaitSeconds);
-                    if (string.IsNullOrEmpty(AcmeEnvironment.CfgStore.SerializedAccountData)) {
-                        AcmeEnvironment.CfgStore.SerializedAccountData = ac.RegisterAndLogin(AcmeEnvironment.CfgStore.EmailAddress);
+                    if (string.IsNullOrEmpty(AcmeEnvironment.CfgStore.AccountKey)) {
+                        AcmeEnvironment.CfgStore.AccountKey = ac.RegisterAndLogin(AcmeEnvironment.CfgStore.EmailAddress);
                         AcmeEnvironment.SaveConfig(cfgFileName);
                     }
                     else {
-                        ac.Login(AcmeEnvironment.CfgStore.SerializedAccountData);
+                        ac.Login(AcmeEnvironment.CfgStore.AccountKey);
                     }
                     using (var challengeManager = AcmeEnvironment.CreateChallengeManager()) {
                         result = ac.GetCertificate(hostNames.SplitNames(), AcmeEnvironment.CfgStore.PfxPassword, challengeManager, skipTest);
@@ -430,20 +430,21 @@ namespace Altairis.AutoAcme.Manager {
                 return;
             }
             Log.WriteLine($"OK, {expiringHosts.Count()} hosts to renew");
-            using (var ac = new AutoAcmeContext(AcmeEnvironment.CfgStore.ServerUri)) {
+            using (var ac = new AutoAcmeContext(AcmeEnvironment.CfgStore.ServerUriV2)) {
                 try {
                     ac.ChallengeVerificationRetryCount = AcmeEnvironment.CfgStore.ChallengeVerificationRetryCount;
                     ac.ChallengeVerificationWait = TimeSpan.FromSeconds(AcmeEnvironment.CfgStore.ChallengeVerificationWaitSeconds);
-                    if (string.IsNullOrEmpty(AcmeEnvironment.CfgStore.SerializedAccountData)) {
-                        AcmeEnvironment.CfgStore.SerializedAccountData = ac.RegisterAndLogin(AcmeEnvironment.CfgStore.EmailAddress);
+                    if (string.IsNullOrEmpty(AcmeEnvironment.CfgStore.AccountKey)) {
+                        AcmeEnvironment.CfgStore.AccountKey = ac.RegisterAndLogin(AcmeEnvironment.CfgStore.EmailAddress);
                         AcmeEnvironment.SaveConfig(cfgFileName);
                     }
                     else {
-                        ac.Login(AcmeEnvironment.CfgStore.SerializedAccountData);
+                        ac.Login(AcmeEnvironment.CfgStore.AccountKey);
                     }
                 }
                 catch (Exception ex) {
                     Log.Exception(ex, "Login failed");
+                    Console.WriteLine(ex.ToString());
                     AcmeEnvironment.CrashExit("Unable to login or create account.");
                 }
 

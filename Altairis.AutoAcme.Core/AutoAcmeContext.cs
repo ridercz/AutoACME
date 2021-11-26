@@ -17,12 +17,6 @@ namespace Altairis.AutoAcme.Core {
 
         public AutoAcmeContext(Uri serverAddress) {
             if (serverAddress == null) throw new ArgumentNullException(nameof(serverAddress));
-            if (serverAddress == WellKnownServers.LetsEncrypt) {
-                serverAddress = WellKnownServers.LetsEncryptV2;
-            }
-            else if (serverAddress == WellKnownServers.LetsEncryptStaging) {
-                serverAddress = WellKnownServers.LetsEncryptStagingV2;
-            }
             Log.WriteVerboseLine($"Using server {serverAddress}");
             this.serverAddress = serverAddress;
             this.client = new AcmeHttpClient(serverAddress);
@@ -105,20 +99,8 @@ namespace Altairis.AutoAcme.Core {
         public async Task LoginAsync(string serializedAccountData) {
             if (serializedAccountData == null) throw new ArgumentNullException(nameof(serializedAccountData));
             if (string.IsNullOrWhiteSpace(serializedAccountData)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(serializedAccountData));
-            var legacyAccount = JsonConvert.DeserializeObject<AcmeAccount>(serializedAccountData);
-            this.context = new AcmeContext(this.serverAddress, KeyFactory.FromDer(legacyAccount.Key.PrivateKeyInfo), this.client);
-            Log.Write($"Accepting TOS at {legacyAccount.Data.Agreement}...");
-            try {
-                var accountContext = await this.context.Account().ConfigureAwait(true);
-                await accountContext.Update(agreeTermsOfService: true).ConfigureAwait(true);
-            }
-            catch (AcmeRequestException ex) {
-                if (ex.Error?.Type != "urn:ietf:params:acme:error:accountDoesNotExist") {
-                    throw;
-                }
-                Log.WriteLine("Migrating account...");
-                await this.context.NewAccount(legacyAccount.Data.Contact, true).ConfigureAwait(true);
-            }
+            this.context = new AcmeContext(this.serverAddress, KeyFactory.FromPem(serializedAccountData), this.client);
+            await this.context.Account();
             Log.WriteLine("OK");
         }
 
@@ -128,24 +110,13 @@ namespace Altairis.AutoAcme.Core {
             if (email == null) throw new ArgumentNullException(nameof(email));
             if (string.IsNullOrWhiteSpace(email)) throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(email));
             if (this.client == null) throw new ObjectDisposedException(nameof(AutoAcmeContext));
+
             this.context = new AcmeContext(this.serverAddress, null, this.client);
             Log.Write($"Creating registration for '{email}' and accept TOS...");
-            var contacts = new[] { "mailto:" + email };
-            var accountContext = await this.context.NewAccount(contacts, true).ConfigureAwait(true);
+            var accountContext = await this.context.NewAccount(email, termsOfServiceAgreed: true).ConfigureAwait(true);
+            var key = this.context.AccountKey.ToPem(); 
             Log.WriteLine("OK");
-            // For compatibility with earlier versions, use the V1 account object for storage
-            var legacyAccount = new AcmeAccount() {
-                ContentType = "application/json",
-                Key = new KeyInfo() { PrivateKeyInfo = this.context.AccountKey.ToDer() },
-                Data = new RegistrationEntity {
-                    Contact = contacts,
-                    Resource = "reg"
-                },
-                Location = accountContext.Location
-            };
-
-            legacyAccount.Data.Agreement = await this.context.TermsOfService().ConfigureAwait(true);
-            return JsonConvert.SerializeObject(legacyAccount);
+            return key;
         }
     }
 }
