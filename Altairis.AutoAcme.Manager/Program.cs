@@ -172,16 +172,6 @@ namespace Altairis.AutoAcme.Manager {
                 bool skipTest,
                 [Optional(null, "cfg", Description = "Custom configuration file name")]
                 string cfgFileName,
-                [Optional(null, "c", Description = "Certificate Country")]
-                string csrCountryName,
-                [Optional(null, "st", Description = "Certificate State")]
-                string csrState,
-                [Optional(null, "l", Description = "Certificate Locality")]
-                string csrLocality,
-                [Optional(null, "o", Description = "Certificate Organization")]
-                string csrOrganization,
-                [Optional(null, "ou", Description = "Certificate Organizational Unit")]
-                string csrOrdganizationUnit,
                 [Optional(false, Description = "Show verbose error messages")]
                 bool verbose) {
             Log.VerboseMode = verbose;
