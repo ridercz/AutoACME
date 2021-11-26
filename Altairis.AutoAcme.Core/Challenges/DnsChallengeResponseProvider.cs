@@ -31,8 +31,7 @@ namespace Altairis.AutoAcme.Core.Challenges {
                 var record = new ManagementObject(this.owner.scope, new ManagementPath(this.path), null);
                 try {
                     record.Delete();
-                }
-                finally {
+                } finally {
                     record.Dispose();
                 }
             }
@@ -108,8 +107,7 @@ namespace Altairis.AutoAcme.Core.Challenges {
                     }
                 }
                 return true;
-            }
-            catch (ManagementException ex) {
+            } catch (ManagementException ex) {
                 Log.WriteLine($"Error 0x{(int)ex.ErrorCode:x} occurred while communicating to the DNS server: {ex.Message}");
                 return false;
             }

@@ -34,8 +34,7 @@ namespace Altairis.AutoAcme.Core {
                     return new HttpChallengeHostedResponseProvider(CfgStore.SelfHostUrlPrefix);
                 }
                 return new HttpChallengeFileResponseProvider(CfgStore.ChallengeFolder);
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 CrashExit(ex);
             }
             return null;
@@ -49,8 +48,7 @@ namespace Altairis.AutoAcme.Core {
                 Log.Write($"Reading configuration from '{cfgFileName}'...");
                 CfgStore = Store.Load(cfgFileName);
                 Log.WriteLine("OK");
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 CrashExit(ex);
             }
         }
@@ -63,8 +61,7 @@ namespace Altairis.AutoAcme.Core {
                 Log.Write($"Saving configuration to '{cfgFileName}'...");
                 CfgStore.Save(cfgFileName);
                 Log.WriteLine("OK");
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 CrashExit(ex);
             }
         }

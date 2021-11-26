@@ -25,8 +25,7 @@ namespace Altairis.AutoAcme.Core {
                     WriteVerboseLine();
                     WriteVerboseLine(iaex.ToString());
                 }
-            }
-            else {
+            } else {
                 Write(": ");
                 WriteLine(ex.Message);
                 WriteVerboseLine();

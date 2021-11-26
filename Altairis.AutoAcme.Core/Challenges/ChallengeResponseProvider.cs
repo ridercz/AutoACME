@@ -65,18 +65,15 @@ namespace Altairis.AutoAcme.Core.Challenges {
                 // Complete challenge
                 Log.WriteLine(result ? "OK" : "Failed");
                 return result;
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 Log.WriteLine("Challenge exception:");
                 Log.WriteLine(ex.ToString());
                 return false;
-            }
-            finally {
+            } finally {
                 foreach (var handler in handlers) {
                     try {
                         handler.Dispose();
-                    }
-                    catch (Exception ex) {
+                    } catch (Exception ex) {
                         Log.WriteLine("Error on challenge response disposal (maybe requires manual cleanup): " + ex.Message);
                     }
                 }

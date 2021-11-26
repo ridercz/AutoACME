@@ -40,18 +40,15 @@ namespace Altairis.AutoAcme.Core.Challenges {
                     // Analyze response headers
                     if (rp.StatusCode == HttpStatusCode.OK) {
                         Log.WriteLine("OK: Status code 200");
-                    }
-                    else {
+                    } else {
                         Log.WriteLine($"ERROR: Response contains status code {rp.StatusCode}. Expecting 200 (OK).");
                         result = false;
                     }
                     if (!rp.Headers.AllKeys.Contains("Content-Type", StringComparer.OrdinalIgnoreCase)) {
                         Log.WriteLine("OK: No Content-Type header");
-                    }
-                    else if (rp.ContentType.Equals("text/json")) {
+                    } else if (rp.ContentType.Equals("text/json")) {
                         Log.WriteLine("OK: Content-Type header");
-                    }
-                    else {
+                    } else {
                         Log.WriteLine($"ERROR: Response contains Content-Type {rp.ContentType}. This header must either be 'text/json' or be missing.");
                         result = false;
                     }
@@ -59,16 +56,14 @@ namespace Altairis.AutoAcme.Core.Challenges {
                     // Analyze response contents
                     if (expectedValue.Equals(responseText)) {
                         Log.WriteLine("OK: Expected response received");
-                    }
-                    else {
+                    } else {
                         Log.WriteLine($"ERROR: Invalid response content. Expected '{expectedValue}', got the following:");
                         Log.WriteLine(responseText);
                         result = false;
                     }
                     Log.Unindent();
                 }
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 Log.Exception(ex, "Failed");
                 result = false;
             }

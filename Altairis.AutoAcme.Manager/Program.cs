@@ -50,8 +50,7 @@ namespace Altairis.AutoAcme.Manager {
                 Console.Write($"Saving {webConfigName}...");
                 File.WriteAllText(webConfigName, Resources.WebConfig);
                 Console.WriteLine("OK");
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 AcmeEnvironment.CrashExit(ex);
             }
         }
@@ -111,11 +110,9 @@ namespace Altairis.AutoAcme.Manager {
                 var acmeServer = Console.ReadLine();
                 if (string.IsNullOrWhiteSpace(acmeServer)) {
                     AcmeEnvironment.CfgStore.ServerUriV2 = WellKnownServers.LetsEncryptV2;
-                }
-                else if (acmeServer.Trim().Equals("staging", StringComparison.OrdinalIgnoreCase)) {
+                } else if (acmeServer.Trim().Equals("staging", StringComparison.OrdinalIgnoreCase)) {
                     AcmeEnvironment.CfgStore.ServerUriV2 = WellKnownServers.LetsEncryptStagingV2;
-                }
-                else {
+                } else {
                     AcmeEnvironment.CfgStore.ServerUriV2 = new Uri(acmeServer);
                 }
                 Console.WriteLine();
@@ -161,8 +158,7 @@ namespace Altairis.AutoAcme.Manager {
                 if (result) {
                     Log.WriteLine("Test authorization was successful. The real verification may still fail,");
                     Log.WriteLine("ie. when server is not accessible from outside.");
-                }
-                else {
+                } else {
                     Log.WriteLine("Test authorization failed. Examine the above to find out why.");
                 }
             }
@@ -213,16 +209,14 @@ namespace Altairis.AutoAcme.Manager {
                     if (string.IsNullOrEmpty(AcmeEnvironment.CfgStore.AccountKey)) {
                         AcmeEnvironment.CfgStore.AccountKey = ac.RegisterAndLogin(AcmeEnvironment.CfgStore.EmailAddress);
                         AcmeEnvironment.SaveConfig(cfgFileName);
-                    }
-                    else {
+                    } else {
                         ac.Login(AcmeEnvironment.CfgStore.AccountKey);
                     }
                     using (var challengeManager = AcmeEnvironment.CreateChallengeManager()) {
                         result = ac.GetCertificate(hostNames.SplitNames(), AcmeEnvironment.CfgStore.PfxPassword, challengeManager, skipTest);
                     }
                 }
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 Log.Exception(ex, "Request failed");
                 AcmeEnvironment.CrashExit("Unable to get certificate for new host.");
             }
@@ -345,14 +339,12 @@ namespace Altairis.AutoAcme.Manager {
             try {
                 if (string.IsNullOrWhiteSpace(fileName)) {
                     Log.WriteLine(sb.ToString());
-                }
-                else {
+                } else {
                     Log.Write($"Writing to file '{fileName}'...");
                     File.WriteAllText(fileName, sb.ToString());
                     Log.WriteLine("OK");
                 }
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 AcmeEnvironment.CrashExit(ex);
             }
         }
@@ -437,12 +429,10 @@ namespace Altairis.AutoAcme.Manager {
                     if (string.IsNullOrEmpty(AcmeEnvironment.CfgStore.AccountKey)) {
                         AcmeEnvironment.CfgStore.AccountKey = ac.RegisterAndLogin(AcmeEnvironment.CfgStore.EmailAddress);
                         AcmeEnvironment.SaveConfig(cfgFileName);
-                    }
-                    else {
+                    } else {
                         ac.Login(AcmeEnvironment.CfgStore.AccountKey);
                     }
-                }
-                catch (Exception ex) {
+                } catch (Exception ex) {
                     Log.Exception(ex, "Login failed");
                     Console.WriteLine(ex.ToString());
                     AcmeEnvironment.CrashExit("Unable to login or create account.");
@@ -455,8 +445,7 @@ namespace Altairis.AutoAcme.Manager {
                         var dte = Math.Floor(host.NotAfter.Subtract(DateTime.Now).TotalDays);
                         if (dte < 0) {
                             Log.WriteLine($"Host {host.CommonName} expired {-dte} days ago ({host.NotAfter:D})");
-                        }
-                        else {
+                        } else {
                             Log.WriteLine($"Host {host.CommonName} expires in {dte} days ({host.NotAfter:D})");
                         }
                         if (whatIf) continue;
@@ -466,8 +455,7 @@ namespace Altairis.AutoAcme.Manager {
                         CertificateRequestResult result = null;
                         try {
                             result = ac.GetCertificate(host.GetNames(), AcmeEnvironment.CfgStore.PfxPassword, challengeManager, skipTest);
-                        }
-                        catch (Exception ex) {
+                        } catch (Exception ex) {
                             Log.Exception(ex, "Renewal failed");
                         }
                         if (result != null) {
@@ -542,8 +530,7 @@ namespace Altairis.AutoAcme.Manager {
                     Log.Write($"Deleting file {file}...");
                     File.Delete(file);
                     Log.WriteLine("OK");
-                }
-                catch (Exception ex) {
+                } catch (Exception ex) {
                     Log.Exception(ex, "Warning");
                 }
             }
@@ -557,8 +544,7 @@ namespace Altairis.AutoAcme.Manager {
                 Log.Write($"Creating folder {folderPath}...");
                 Directory.CreateDirectory(folderPath);
                 Log.WriteLine("OK");
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 Log.WriteLine("Failed!");
                 Log.WriteLine(ex.Message);
                 Log.WriteVerboseLine();

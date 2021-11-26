@@ -21,8 +21,7 @@ namespace Altairis.AutoAcme.Core.Challenges {
             Log.Indent();
             try {
                 return provider.ValidateAsync(context, authorizationContexts);
-            }
-            finally {
+            } finally {
                 Log.Unindent();
             }
         }
@@ -37,8 +36,7 @@ namespace Altairis.AutoAcme.Core.Challenges {
                     if (await provider.TestAsync(hostNames).ConfigureAwait(true)) {
                         return true;
                     }
-                }
-                finally {
+                } finally {
                     Log.Unindent();
                 }
                 this.index++;

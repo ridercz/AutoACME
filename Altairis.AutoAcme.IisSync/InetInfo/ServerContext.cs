@@ -14,8 +14,7 @@ namespace Altairis.AutoAcme.IisSync.InetInfo {
         public ServerContext(string serverName) {
             if (string.IsNullOrWhiteSpace(serverName) || LOCALHOST_NAMES.Any(x => x.Equals(serverName, StringComparison.OrdinalIgnoreCase))) {
                 this.mgr = new ServerManager();
-            }
-            else {
+            } else {
                 this.mgr = ServerManager.OpenRemote(serverName);
             }
         }

@@ -50,8 +50,7 @@ namespace Altairis.AutoAcme.Core {
                         for (var i = 1; i < chain.ChainElements.Count - 1; i++) {
                             WriteCertificateData(f, chain.ChainElements[i].Certificate);
                         }
-                    }
-                    else {
+                    } else {
                         Log.WriteLine($"Warning: The chain of the certificate could not be exported to {crtFileName}");
                     }
                 }

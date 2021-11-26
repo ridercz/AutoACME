@@ -45,8 +45,7 @@ namespace Altairis.AutoAcme.IisSync {
                     Log.Write($"Getting bindings from '{serverName}'...");
                     // Get all bindings
                     bindings = sc.GetBindings();
-                }
-                catch (Exception ex) {
+                } catch (Exception ex) {
                     AcmeEnvironment.CrashExit(ex);
                 }
 
@@ -79,8 +78,7 @@ namespace Altairis.AutoAcme.IisSync {
                     if (string.IsNullOrEmpty(AcmeEnvironment.CfgStore.AccountKey)) {
                         AcmeEnvironment.CfgStore.AccountKey = ac.RegisterAndLogin(AcmeEnvironment.CfgStore.EmailAddress);
                         AcmeEnvironment.SaveConfig(cfgFileName);
-                    }
-                    else {
+                    } else {
                         ac.Login(AcmeEnvironment.CfgStore.AccountKey);
                     }
 
@@ -98,8 +96,7 @@ namespace Altairis.AutoAcme.IisSync {
                             CertificateRequestResult result = null;
                             try {
                                 result = ac.GetCertificate(new[] { binding.Host }, AcmeEnvironment.CfgStore.PfxPassword, challengeManager);
-                            }
-                            catch (Exception ex) {
+                            } catch (Exception ex) {
                                 Log.Exception(ex, "Request failed");
                                 continue;
                             }
@@ -132,8 +129,7 @@ namespace Altairis.AutoAcme.IisSync {
                                     Log.Write($"Adding HTTPS CCS binding for {binding.Host.ExplainHostName()}...");
                                     sc.AddCcsBinding(binding.SiteName, binding.Host, requireSni);
                                     Log.WriteLine("OK");
-                                }
-                                catch (Exception ex) {
+                                } catch (Exception ex) {
                                     AcmeEnvironment.CrashExit(ex);
                                 }
                             }
@@ -183,8 +179,7 @@ namespace Altairis.AutoAcme.IisSync {
                     sc.AddCcsBinding(site.SiteName, hostName, requireSni);
                     Log.WriteLine("OK");
 
-                }
-                catch (Exception ex) {
+                } catch (Exception ex) {
                     AcmeEnvironment.CrashExit(ex);
                 }
             }
@@ -241,14 +236,12 @@ namespace Altairis.AutoAcme.IisSync {
 
                 if (string.IsNullOrWhiteSpace(fileName)) {
                     Log.WriteLine(sb.ToString());
-                }
-                else {
+                } else {
                     Log.Write($"Writing to file '{fileName}'...");
                     File.WriteAllText(fileName, sb.ToString());
                     Log.WriteLine("OK");
                 }
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 AcmeEnvironment.CrashExit(ex);
             }
         }

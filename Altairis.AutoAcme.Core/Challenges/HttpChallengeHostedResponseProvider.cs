@@ -37,8 +37,7 @@ namespace Altairis.AutoAcme.Core.Challenges {
                 if (disposing) {
                     this.listener.Close();
                 }
-            }
-            finally {
+            } finally {
                 base.Dispose(disposing);
             }
         }

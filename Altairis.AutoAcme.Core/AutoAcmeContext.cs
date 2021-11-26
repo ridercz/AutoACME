@@ -7,7 +7,6 @@ using Altairis.AutoAcme.Core.Challenges;
 using Certes;
 using Certes.Acme;
 using Certes.Pkcs;
-using Newtonsoft.Json;
 
 namespace Altairis.AutoAcme.Core {
     public class AutoAcmeContext : IDisposable {
@@ -114,7 +113,7 @@ namespace Altairis.AutoAcme.Core {
             this.context = new AcmeContext(this.serverAddress, null, this.client);
             Log.Write($"Creating registration for '{email}' and accept TOS...");
             var accountContext = await this.context.NewAccount(email, termsOfServiceAgreed: true).ConfigureAwait(true);
-            var key = this.context.AccountKey.ToPem(); 
+            var key = this.context.AccountKey.ToPem();
             Log.WriteLine("OK");
             return key;
         }
