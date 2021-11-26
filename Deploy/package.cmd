@@ -37,11 +37,11 @@ COPY /Y ..\Altairis.AutoAcme.IisSync\bin\Debug\*.dll Distribution\lib
 COPY /Y ..\Altairis.AutoAcme.IisSync\bin\Debug\aasync.exe Distribution
 COPY /Y ..\Altairis.AutoAcme.IisSync\bin\Debug\aasync.exe.config Distribution
 
-ECHO Digitally signing EXE files...
-%SIGNTOOL% sign /n "Altairis, s. r. o." /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 "Distribution\autoacme.exe"
-%SIGNTOOL% sign /n "Altairis, s. r. o." /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 "Distribution\aasync.exe"
-%SIGNTOOL% sign /n "Altairis, s. r. o." /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 "Distribution\lib\Altairis.AutoAcme.Core.dll"
-%SIGNTOOL% sign /n "Altairis, s. r. o." /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 "Distribution\lib\Altairis.AutoAcme.Configuration.dll"
+REM ECHO Digitally signing EXE files...
+REM %SIGNTOOL% sign /n "Altairis, s. r. o." /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 "Distribution\autoacme.exe"
+REM %SIGNTOOL% sign /n "Altairis, s. r. o." /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 "Distribution\aasync.exe"
+REM %SIGNTOOL% sign /n "Altairis, s. r. o." /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 "Distribution\lib\Altairis.AutoAcme.Core.dll"
+REM %SIGNTOOL% sign /n "Altairis, s. r. o." /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 "Distribution\lib\Altairis.AutoAcme.Configuration.dll"
 
 ECHO Making ZIP file...
 CD Distribution
@@ -49,5 +49,5 @@ CD Distribution
 %SEVENZ% a -sfx"..\AutoACME.sfx" ..\AutoACME-setup.exe *
 CD ..
 
-ECHO Digitally signing SFX archive...
-%SIGNTOOL% sign /n "Altairis, s. r. o." /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 "AutoACME-setup.exe"
+REM ECHO Digitally signing SFX archive...
+REM %SIGNTOOL% sign /n "Altairis, s. r. o." /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 "AutoACME-setup.exe"
