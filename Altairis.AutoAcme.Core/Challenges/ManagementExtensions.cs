@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Altairis.AutoAcme.Core.Challenges {
     public static class ManagementExtensions {
-        private static CompletedEventHandler CreateCompletedHandler<T>(this TaskCompletionSource<T> that, T result = default(T)) {
+        private static CompletedEventHandler CreateCompletedHandler<T>(this TaskCompletionSource<T> that, T result = default) {
             return (sender, eventArgs) => {
                 switch (eventArgs.Status) {
                 case ManagementStatus.NoError:
